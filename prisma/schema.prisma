@@ -25,8 +25,8 @@ model Workspace {
   events           CitationEvent[]
   pages            ContentPage[]
   tasks            OptimizationTask[]
-  schemas           SchemaRecord[]
-  entities          KgEntity[]
+  schemas          SchemaRecord[]
+  entities         KgEntity[]
 
   @@index([status])
 }
@@ -196,6 +196,7 @@ model KgRelation {
   toEntity     KgEntity  @relation("RelationTo", fields: [toEntityId], references: [id], onDelete: Cascade)
   relationType String
   properties   Json      @default("{}")
+  createdAt    DateTime  @default(now())
 
   @@index([fromEntityId])
   @@index([toEntityId])

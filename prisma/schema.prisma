@@ -4,9 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  extensions = [vector]
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============ 基础：多租户 ============
@@ -44,7 +43,6 @@ model CitationQuery {
   intent      Json        @default("{}")
   source      QuerySource
   status      QueryStatus @default(ACTIVE)
-  embedding   Unsupported("vector(1536)")?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -79,7 +77,6 @@ model CitationEvent {
   competitors    Json          @default("[]")
   rawAnswer      String        @db.Text
   sovScore       Float?
-  embedding      Unsupported("vector(1536)")?
   capturedAt     DateTime      @default(now())
 
   @@index([workspaceId, platform, capturedAt])

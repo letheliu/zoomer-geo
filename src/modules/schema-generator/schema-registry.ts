@@ -1,13 +1,13 @@
 import type { SupportedSchemaType, SchemaTypeDefinition } from './types.js'
 
-export const SUPPORTED_TYPES: SupportedSchemaType[] = [
+export const SUPPORTED_TYPES = [
   'SoftwareApplication',
   'Organization',
   'Product',
   'FAQPage',
   'Article',
   'BreadcrumbList',
-]
+] as const satisfies readonly SupportedSchemaType[]
 
 const SCHEMA_TYPES: Record<SupportedSchemaType, SchemaTypeDefinition> = {
   SoftwareApplication: {

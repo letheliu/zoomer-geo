@@ -28,7 +28,7 @@ describe('pg-boss queue', () => {
   it('注册定时任务', async () => {
     const { createQueue } = await import('./boss.js')
     const boss = await createQueue()
-    await boss.schedule('citation-monitor-daily', { workspaceId: 'w1' })
-    expect(mockSchedule).toHaveBeenCalledWith('citation-monitor-daily', { workspaceId: 'w1' })
+    await boss.schedule('citation-monitor-daily', '0 2 * * *', { workspaceId: 'w1' })
+    expect(mockSchedule).toHaveBeenCalledWith('citation-monitor-daily', '0 2 * * *', { workspaceId: 'w1' })
   })
 })

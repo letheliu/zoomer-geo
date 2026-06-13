@@ -15,6 +15,12 @@ import { createQueryLibraryService } from './modules/citation-monitor/query-libr
 import { createMonitor } from './modules/citation-monitor/monitor.js'
 import { startCitationScheduler } from './workers/citation-scheduler.js'
 import { getLlmProvider } from './core/llm/index.js'
+import { createAtomizer } from './modules/content-optimizer/atomizer.js'
+import { createScoringEngine } from './modules/content-optimizer/scoring.js'
+import { createRewriter } from './modules/content-optimizer/rewriter.js'
+import { createFaqGenerator } from './modules/content-optimizer/faq-generator.js'
+import { createTaskService } from './modules/content-optimizer/task-service.js'
+import { createOrchestrator } from './modules/content-optimizer/orchestrator.js'
 
 async function main() {
   const port = Number(process.env.PORT || 3000)
@@ -36,8 +42,18 @@ async function main() {
     competitors: [], // 生产环境从配置加载
   })
 
+  // 组装 content-optimizer 组件
+  const atomizer = createAtomizer(getLlmProvider())
+  const scoring = createScoringEngine()
+  const rewriter = createRewriter(getLlmProvider())
+  const faqGenerator = createFaqGenerator(getLlmProvider(), prisma)
+  const taskService = createTaskService(prisma)
+  const orchestrator = createOrchestrator({
+    atomizer, scoring, rewriter, faqGenerator, taskService, prisma,
+  })
+
   // 注入到 tRPC context 的 services
-  const services = { prisma, monitor, queryLibrary }
+  const services = { prisma, monitor, queryLibrary, orchestrator, taskService, atomizer, faqGenerator }
 
   const fastify = Fastify({ logger: true })
   await fastify.register(fastifyTRPCPlugin, {

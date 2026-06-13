@@ -62,7 +62,17 @@ export function createRewriter(llm: LlmProvider): RewriterService {
         { temperature: 0.3 },
       )
       const rewritten = parseRewritten(res.text)
-      return rewritten ?? atom
+      if (rewritten) {
+        return {
+          text: rewritten.text ?? atom.text,
+          subject: rewritten.subject ?? atom.subject,
+          predicate: rewritten.predicate ?? atom.predicate,
+          object: rewritten.object ?? atom.object,
+          anchors: rewritten.anchors ?? atom.anchors,
+          definition: rewritten.definition ?? atom.definition,
+        }
+      }
+      return atom
     },
 
     async rewriteBatch(atoms, threshold = 70) {

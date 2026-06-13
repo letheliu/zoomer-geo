@@ -25,6 +25,8 @@ model Workspace {
   events           CitationEvent[]
   pages            ContentPage[]
   tasks            OptimizationTask[]
+  schemas           SchemaRecord[]
+  entities          KgEntity[]
 
   @@index([status])
 }
@@ -128,6 +130,7 @@ model OptimizationTask {
   afterScore   Float?
   result       Json?
   reviewNote   String?     @db.Text
+  extractionProposals Json?        // 新增：KG 待持久化数据，type=UPDATE_KG 时使用
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -147,4 +150,53 @@ enum TaskStatus {
   REVIEWED
   PUBLISHED
   FAILED
+}
+
+// ============ 模块 3：Schema 生成 ============
+
+model SchemaRecord {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  pageUrl         String
+  schemaType      String
+  content         Json
+  llmsTxtSection  String?
+  version         Int       @default(1)
+  createdAt       DateTime  @default(now())
+
+  @@index([workspaceId, pageUrl])
+  @@index([workspaceId, schemaType])
+}
+
+// ============ 模块 4：知识图谱 ============
+
+model KgEntity {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  type        String
+  properties  Json      @default("{}")
+  sourceUrl   String?
+  createdAt   DateTime  @default(now())
+
+  relationsFrom KgRelation[] @relation("RelationFrom")
+  relationsTo   KgRelation[] @relation("RelationTo")
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, type])
+}
+
+model KgRelation {
+  id           String   @id @default(cuid())
+  fromEntityId String
+  fromEntity   KgEntity  @relation("RelationFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
+  toEntityId   String
+  toEntity     KgEntity  @relation("RelationTo", fields: [toEntityId], references: [id], onDelete: Cascade)
+  relationType String
+  properties   Json      @default("{}")
+
+  @@index([fromEntityId])
+  @@index([toEntityId])
 }

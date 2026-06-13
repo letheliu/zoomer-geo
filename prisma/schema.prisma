@@ -23,6 +23,8 @@ model Workspace {
 
   queries          CitationQuery[]
   events           CitationEvent[]
+  pages            ContentPage[]
+  tasks            OptimizationTask[]
 
   @@index([status])
 }
@@ -47,6 +49,7 @@ model CitationQuery {
   updatedAt   DateTime    @updatedAt
 
   events      CitationEvent[]
+  tasks       OptimizationTask[]
 
   @@index([workspaceId, status])
 }
@@ -82,4 +85,66 @@ model CitationEvent {
 
   @@index([workspaceId, platform, capturedAt])
   @@index([queryId, capturedAt])
+}
+
+// ============ 模块 2：内容优化 ============
+
+model ContentPage {
+  id                String        @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  url               String
+  pageType          String
+  currentContent    String        @db.Text
+  optimizedContent  String?       @db.Text
+  optimizationScore Float?
+  status            ContentStatus @default(DRAFT)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  tasks             OptimizationTask[]
+
+  @@unique([workspaceId, url])
+  @@index([workspaceId, status])
+}
+
+enum ContentStatus {
+  DRAFT
+  REVIEWED
+  PUBLISHED
+}
+
+model OptimizationTask {
+  id           String      @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type         TaskType
+  queryId      String?
+  query        CitationQuery? @relation(fields: [queryId], references: [id])
+  pageId       String?
+  page         ContentPage?   @relation(fields: [pageId], references: [id])
+  status       TaskStatus  @default(PENDING)
+  beforeScore  Float?
+  afterScore   Float?
+  result       Json?
+  reviewNote   String?     @db.Text
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([workspaceId, status])
+}
+
+enum TaskType {
+  OPTIMIZE_FOR_QUERY
+  REWRITE_CONTENT
+  GENERATE_SCHEMA
+  UPDATE_KG
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  REVIEWED
+  PUBLISHED
+  FAILED
 }

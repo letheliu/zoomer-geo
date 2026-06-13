@@ -1,6 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -43,6 +42,7 @@ model CitationQuery {
   intent      Json        @default("{}")
   source      QuerySource
   status      QueryStatus @default(ACTIVE)
+  embedding   Json?       // 方案 A：存 number[]（1536 维），应用层算余弦相似度
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -77,6 +77,7 @@ model CitationEvent {
   competitors    Json          @default("[]")
   rawAnswer      String        @db.Text
   sovScore       Float?
+  embedding      Json?         // 方案 A：存 number[]（1536 维），应用层算余弦相似度
   capturedAt     DateTime      @default(now())
 
   @@index([workspaceId, platform, capturedAt])

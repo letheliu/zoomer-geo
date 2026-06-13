@@ -1,0 +1,15 @@
+version: '3.9'
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: geo-postgres
+    environment:
+      POSTGRES_USER: geo
+      POSTGRES_PASSWORD: geo_secret
+      POSTGRES_DB: geo
+    ports:
+      - '5432:5432'
+    volumes:
+      - geo_pgdata:/var/lib/postgresql/data
+volumes:
+  geo_pgdata:

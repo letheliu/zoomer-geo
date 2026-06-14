@@ -36,7 +36,7 @@ describe('OptimizationTaskService', () => {
   })
 
   it('create 创建任务', async () => {
-    const svc = createTaskService(prisma)
+    const svc = createTaskService({ prisma })
     const task = await svc.create({
       workspaceId: 'w1',
       type: 'REWRITE_CONTENT',
@@ -55,7 +55,7 @@ describe('OptimizationTaskService', () => {
   })
 
   it('list 按 workspace 查询任务', async () => {
-    const svc = createTaskService(prisma)
+    const svc = createTaskService({ prisma })
     const tasks = await svc.list('w1')
     expect(tasks).toHaveLength(1)
     expect(prisma.optimizationTask.findMany).toHaveBeenCalledWith({
@@ -64,7 +64,7 @@ describe('OptimizationTaskService', () => {
   })
 
   it('list 按 workspace + status 过滤', async () => {
-    const svc = createTaskService(prisma)
+    const svc = createTaskService({ prisma })
     await svc.list('w1', 'PENDING')
     expect(prisma.optimizationTask.findMany).toHaveBeenCalledWith({
       where: { workspaceId: 'w1', status: 'PENDING' },
@@ -72,13 +72,13 @@ describe('OptimizationTaskService', () => {
   })
 
   it('getById 查询单个任务', async () => {
-    const svc = createTaskService(prisma)
+    const svc = createTaskService({ prisma })
     const task = await svc.getById('task-1')
     expect(task?.id).toBe('task-1')
   })
 
   it('review approve 时 status 变为 REVIEWED，同时更新 ContentPage', async () => {
-    const svc = createTaskService(prisma)
+    const svc = createTaskService({ prisma })
     const task = await svc.review('task-1', true)
     expect(task.status).toBe('REVIEWED')
     expect(prisma.optimizationTask.update).toHaveBeenCalledWith({
@@ -89,7 +89,7 @@ describe('OptimizationTaskService', () => {
   })
 
   it('review reject 时 status 退回 PENDING 并记录 reviewNote', async () => {
-    const svc = createTaskService(prisma)
+    const svc = createTaskService({ prisma })
     const task = await svc.review('task-1', false, '内容不准确')
     expect(task.status).toBe('PENDING')
     expect(prisma.optimizationTask.update).toHaveBeenCalledWith({
@@ -104,7 +104,7 @@ describe('OptimizationTaskService', () => {
       status: 'REVIEWED',
       pageId: 'page-1',
     })
-    const svc = createTaskService(prisma)
+    const svc = createTaskService({ prisma })
     const task = await svc.publish('task-1')
     expect(task.status).toBe('PUBLISHED')
     expect(prisma.optimizationTask.update).toHaveBeenCalledWith({
@@ -118,7 +118,46 @@ describe('OptimizationTaskService', () => {
       id: 'task-1',
       status: 'PENDING',
     })
-    const svc = createTaskService(prisma)
+    const svc = createTaskService({ prisma })
     await expect(svc.publish('task-1')).rejects.toThrow()
+  })
+
+  it('publish 触发 onPublished 回调，传入更新后的任务', async () => {
+    prisma.optimizationTask.findUnique = vi.fn().mockResolvedValue({
+      id: 'task-1',
+      status: 'REVIEWED',
+      pageId: 'page-1',
+      workspaceId: 'w1',
+    })
+    const onPublished = vi.fn()
+    const svc = createTaskService({ prisma, onPublished })
+    await svc.publish('task-1')
+    expect(onPublished).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'task-1', status: 'PUBLISHED' }),
+    )
+  })
+
+  it('publish 未提供 onPublished 时正常更新状态', async () => {
+    prisma.optimizationTask.findUnique = vi.fn().mockResolvedValue({
+      id: 'task-1',
+      status: 'REVIEWED',
+      pageId: 'page-1',
+    })
+    const svc = createTaskService({ prisma })
+    const task = await svc.publish('task-1')
+    expect(task.status).toBe('PUBLISHED')
+  })
+
+  it('publish 回调抛错被捕获，不影响状态更新（仅记录日志）', async () => {
+    prisma.optimizationTask.findUnique = vi.fn().mockResolvedValue({
+      id: 'task-1',
+      status: 'REVIEWED',
+      pageId: 'page-1',
+    })
+    const onPublished = vi.fn().mockRejectedValue(new Error('回调失败'))
+    const svc = createTaskService({ prisma, onPublished })
+    const task = await svc.publish('task-1')
+    expect(task.status).toBe('PUBLISHED')
+    expect(onPublished).toHaveBeenCalled()
   })
 })

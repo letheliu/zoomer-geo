@@ -10,6 +10,11 @@ export interface CreateTaskInput {
   result?: Record<string, unknown>
 }
 
+export interface TaskServiceDeps {
+  prisma: PrismaClient
+  onPublished?: (task: OptimizationTask) => Promise<void>
+}
+
 export interface TaskService {
   create(input: CreateTaskInput): Promise<OptimizationTask>
   list(workspaceId: string, status?: TaskStatus): Promise<OptimizationTask[]>
@@ -18,7 +23,9 @@ export interface TaskService {
   publish(id: string): Promise<OptimizationTask>
 }
 
-export function createTaskService(prisma: PrismaClient): TaskService {
+export function createTaskService(deps: TaskServiceDeps): TaskService {
+  const { prisma, onPublished } = deps
+
   return {
     async create(input) {
       return prisma.optimizationTask.create({
@@ -54,7 +61,6 @@ export function createTaskService(prisma: PrismaClient): TaskService {
           where: { id },
           data: { status: 'REVIEWED' },
         })
-        // 同时更新关联的 ContentPage
         if (task.pageId) {
           await prisma.contentPage.update({
             where: { id: task.pageId },
@@ -87,6 +93,16 @@ export function createTaskService(prisma: PrismaClient): TaskService {
           data: { status: 'PUBLISHED' },
         })
       }
+
+      // 触发回调（失败不影响状态更新）
+      if (onPublished) {
+        try {
+          await onPublished(updated)
+        } catch (err) {
+          console.error(`[taskService] onPublished callback failed for task ${id}:`, err)
+        }
+      }
+
       return updated
     },
   }

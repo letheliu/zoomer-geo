@@ -3,12 +3,16 @@ import { workspaceRouter } from './core/workspace/router.js'
 import { citationRouter } from './modules/citation-monitor/router.js'
 import { contentRouter } from './modules/content-optimizer/router.js'
 import { taskRouter } from './modules/content-optimizer/task-router.js'
+import { schemaRouter } from './modules/schema-generator/router.js'
+import { kgRouter } from './modules/knowledge-graph/router.js'
 
 export const appRouter = router({
   workspace: workspaceRouter,
   citation: citationRouter,
   content: contentRouter,
   tasks: taskRouter,
+  schema: schemaRouter,
+  kg: kgRouter,
 })
 
 export type AppRouter = typeof appRouter

@@ -64,5 +64,9 @@ export interface LlmsTxtInput {
 /** autoBuildSections 输出 */
 export interface AutoSectionsResult {
   sections: LlmsTxtSection[]
+  updateFrequency?: {
+    docs?: string
+    blog?: string
+  }
   warnings: string[]
 }

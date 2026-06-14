@@ -79,16 +79,10 @@ export function createAutoSections(deps: { prisma: PrismaClient }): AutoSections
         sections.push({ title: '常见问答', items: faqItems })
       }
 
-      // 4. 更新频率（默认值，后续可配置）
-      sections.push({
-        title: '更新频率',
-        items: [
-          { label: '文档', url: '/docs', description: '每周' },
-          { label: '博客', url: '/blog', description: '每周 2 篇' },
-        ],
-      })
+      // 4. 更新频率（默认值，后续可配置）— 单独字段，不在 sections 数组中
+      const updateFrequency = { docs: '每周', blog: '每周 2 篇' }
 
-      return { sections, warnings }
+      return { sections, updateFrequency, warnings }
     },
   }
 }

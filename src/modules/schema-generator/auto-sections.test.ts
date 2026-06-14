@@ -90,6 +90,10 @@ describe('AutoSections', () => {
     const result = await svc.buildSections('w1')
     expect(result.warnings.length).toBeGreaterThan(0)
     expect(result.warnings.some((w) => w.includes('核心产品'))).toBe(true)
+    expect(result.updateFrequency).toBeDefined()
+    expect(result.updateFrequency?.docs).toBe('每周')
+    expect(result.updateFrequency?.blog).toBe('每周 2 篇')
+    expect(result.sections.find((s) => s.title === '更新频率')).toBeUndefined()
   })
 
   it('optimizedContent 不是 JSON 时不抛错', async () => {

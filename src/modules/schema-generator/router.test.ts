@@ -44,10 +44,10 @@ describe('schemaRouter', () => {
     expect(schema.list).toHaveBeenCalledWith({ workspaceId: 'w1', pageUrl: 'https://x.com' })
   })
 
-  it('get 路由', async () => {
+  it('get 路由注入 workspaceId', async () => {
     const caller = schemaRouter.createCaller(mockCtx(services))
     await caller.get({ id: 'sr-1' })
-    expect(schema.getById).toHaveBeenCalledWith('sr-1')
+    expect(schema.getById).toHaveBeenCalledWith('w1', 'sr-1')
   })
 
   it('regenerateForPage 路由', async () => {

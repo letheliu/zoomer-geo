@@ -73,7 +73,7 @@ export const schemaRouter = router({
   get: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.services.schema.getById(input.id)
+      return ctx.services.schema.getById(ctx.workspace.id, input.id)
     }),
 
   regenerateForPage: protectedProcedure

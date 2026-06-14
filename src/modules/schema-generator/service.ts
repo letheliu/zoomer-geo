@@ -30,7 +30,7 @@ export interface SchemaService {
   regenerateForPage(pageId: string): Promise<SchemaRecord[]>
 
   list(input: { workspaceId: string; pageUrl?: string; schemaType?: string }): Promise<SchemaRecord[]>
-  getById(id: string): Promise<SchemaRecord | null>
+  getById(workspaceId: string, id: string): Promise<SchemaRecord | null>
 
   buildAutoSections(workspaceId: string): Promise<AutoSectionsResult>
 }
@@ -135,8 +135,8 @@ export function createSchemaService(deps: {
       return deps.prisma.schemaRecord.findMany({ where, orderBy: { createdAt: 'desc' } })
     },
 
-    async getById(id) {
-      return deps.prisma.schemaRecord.findUnique({ where: { id } })
+    async getById(workspaceId, id) {
+      return deps.prisma.schemaRecord.findFirst({ where: { id, workspaceId } })
     },
 
     async buildAutoSections(workspaceId) {

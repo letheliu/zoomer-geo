@@ -24,7 +24,10 @@ export const kgRouter = router({
       properties: z.record(z.unknown()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.services.kg.addRelation(input)
+      return ctx.services.kg.addRelation({
+        workspaceId: ctx.workspace.id,
+        ...input,
+      })
     }),
 
   removeEntity: protectedProcedure
@@ -45,7 +48,7 @@ export const kgRouter = router({
       toId: z.string().optional(),
     }).optional())
     .query(async ({ ctx, input }) => {
-      return ctx.services.kg.listRelations({
+      return ctx.services.kg.listRelations(ctx.workspace.id, {
         fromId: input?.fromId,
         toId: input?.toId,
       })
@@ -54,7 +57,7 @@ export const kgRouter = router({
   getEntity: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.services.kg.getEntity(input.id)
+      return ctx.services.kg.getEntity(ctx.workspace.id, input.id)
     }),
 
   extractFromPage: protectedProcedure

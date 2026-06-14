@@ -104,4 +104,27 @@ describe('KgService', () => {
     await svc.exportGraph({ workspaceId: 'w1', format: 'jsonld' })
     expect(deps.exporter.export).toHaveBeenCalled()
   })
+
+  it('addRelation 透传时携带 workspaceId', async () => {
+    const deps = mockDeps()
+    const svc = createKgService(deps)
+    await svc.addRelation({ workspaceId: 'w1', fromName: 'A', toName: 'B', relationType: 'competitor' })
+    expect(deps.repository.addRelation).toHaveBeenCalledWith({
+      workspaceId: 'w1', fromName: 'A', toName: 'B', relationType: 'competitor',
+    })
+  })
+
+  it('listRelations 透传时携带 workspaceId', async () => {
+    const deps = mockDeps()
+    const svc = createKgService(deps)
+    await svc.listRelations('w1', { fromId: 'e1' })
+    expect(deps.repository.findRelations).toHaveBeenCalledWith('w1', { fromId: 'e1' })
+  })
+
+  it('getEntity 透传时携带 workspaceId', async () => {
+    const deps = mockDeps()
+    const svc = createKgService(deps)
+    await svc.getEntity('w1', 'e1')
+    expect(deps.repository.findEntityById).toHaveBeenCalledWith('w1', 'e1')
+  })
 })

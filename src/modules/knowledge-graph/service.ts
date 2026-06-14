@@ -7,7 +7,7 @@ import type { KgProposalSet, ExportInput } from './types.js'
 export interface KgService {
   // 手动 CRUD
   addEntity(input: { workspaceId: string; name: string; type: string; properties: Record<string, unknown>; sourceUrl?: string }): Promise<KgEntity>
-  addRelation(input: { fromName: string; toName: string; relationType: string; properties?: Record<string, unknown> }): Promise<KgRelation>
+  addRelation(input: { workspaceId: string; fromName: string; toName: string; relationType: string; properties?: Record<string, unknown> }): Promise<KgRelation>
   removeEntity(id: string): Promise<void>
 
   // 自动抽取
@@ -23,8 +23,8 @@ export interface KgService {
 
   // 查询
   listEntities(workspaceId: string, opts?: { type?: string }): Promise<KgEntity[]>
-  listRelations(opts: { fromId?: string; toId?: string }): Promise<KgRelation[]>
-  getEntity(id: string): Promise<KgEntity | null>
+  listRelations(workspaceId: string, opts?: { fromId?: string; toId?: string }): Promise<KgRelation[]>
+  getEntity(workspaceId: string, id: string): Promise<KgEntity | null>
 
   // 导出
   exportGraph(input: ExportInput): Promise<string>
@@ -81,6 +81,7 @@ export function createKgService(deps: {
         }
         try {
           await deps.repository.addRelation({
+            workspaceId,
             fromName: r.fromName,
             toName: r.toName,
             relationType: r.relationType,
@@ -96,8 +97,8 @@ export function createKgService(deps: {
     },
 
     listEntities: (workspaceId, opts) => deps.repository.findEntities(workspaceId, opts),
-    listRelations: (opts) => deps.repository.findRelations(opts),
-    getEntity: (id) => deps.repository.findEntityById(id),
+    listRelations: (workspaceId, opts) => deps.repository.findRelations(workspaceId, opts),
+    getEntity: (workspaceId, id) => deps.repository.findEntityById(workspaceId, id),
     exportGraph: (input) => deps.exporter.export(input),
   }
 }

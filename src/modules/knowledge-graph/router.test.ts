@@ -24,10 +24,10 @@ describe('kgRouter', () => {
     expect(kg.addEntity).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 'w1', name: 'X' }))
   })
 
-  it('addRelation 路由', async () => {
+  it('addRelation 路由注入 workspaceId', async () => {
     const caller = kgRouter.createCaller(mockCtx(services))
     await caller.addRelation({ fromName: 'A', toName: 'B', relationType: 'competitor' })
-    expect(kg.addRelation).toHaveBeenCalledWith({ fromName: 'A', toName: 'B', relationType: 'competitor' })
+    expect(kg.addRelation).toHaveBeenCalledWith({ workspaceId: 'w1', fromName: 'A', toName: 'B', relationType: 'competitor' })
   })
 
   it('removeEntity 路由', async () => {
@@ -42,16 +42,16 @@ describe('kgRouter', () => {
     expect(kg.listEntities).toHaveBeenCalledWith('w1', { type: 'SoftwareApplication' })
   })
 
-  it('listRelations 路由', async () => {
+  it('listRelations 路由注入 workspaceId', async () => {
     const caller = kgRouter.createCaller(mockCtx(services))
     await caller.listRelations({ fromId: 'e1' })
-    expect(kg.listRelations).toHaveBeenCalledWith({ fromId: 'e1' })
+    expect(kg.listRelations).toHaveBeenCalledWith('w1', { fromId: 'e1' })
   })
 
-  it('getEntity 路由', async () => {
+  it('getEntity 路由注入 workspaceId', async () => {
     const caller = kgRouter.createCaller(mockCtx(services))
     await caller.getEntity({ id: 'e1' })
-    expect(kg.getEntity).toHaveBeenCalledWith('e1')
+    expect(kg.getEntity).toHaveBeenCalledWith('w1', 'e1')
   })
 
   it('extractFromPage 路由', async () => {

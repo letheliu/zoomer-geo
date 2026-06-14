@@ -16,7 +16,7 @@ export class EntityNotFoundError extends Error {
 
 export interface KgRepositoryService {
   findEntityByName(workspaceId: string, name: string): Promise<KgEntity | null>
-  findEntityById(id: string): Promise<KgEntity | null>
+  findEntityById(workspaceId: string, id: string): Promise<KgEntity | null>
   findEntities(workspaceId: string, opts?: { type?: string }): Promise<KgEntity[]>
   addEntity(input: {
     workspaceId: string
@@ -27,8 +27,9 @@ export interface KgRepositoryService {
   }): Promise<KgEntity>
   removeEntity(id: string): Promise<void>
 
-  findRelations(opts: { fromId?: string; toId?: string }): Promise<KgRelation[]>
+  findRelations(workspaceId: string, opts?: { fromId?: string; toId?: string }): Promise<KgRelation[]>
   addRelation(input: {
+    workspaceId: string
     fromName: string
     toName: string
     relationType: string
@@ -44,8 +45,8 @@ export function createKgRepository(prisma: PrismaClient): KgRepositoryService {
       })
     },
 
-    async findEntityById(id) {
-      return prisma.kgEntity.findUnique({ where: { id } })
+    async findEntityById(workspaceId, id) {
+      return prisma.kgEntity.findFirst({ where: { id, workspaceId } })
     },
 
     async findEntities(workspaceId, opts) {
@@ -74,23 +75,28 @@ export function createKgRepository(prisma: PrismaClient): KgRepositoryService {
       await prisma.kgEntity.delete({ where: { id } })
     },
 
-    async findRelations(opts) {
-      const where: any = {}
-      if (opts.fromId) where.fromEntityId = opts.fromId
-      if (opts.toId) where.toEntityId = opts.toId
+    async findRelations(workspaceId, opts) {
+      const where: any = {
+        fromEntity: { workspaceId },
+        toEntity: { workspaceId },
+      }
+      if (opts?.fromId) where.fromEntityId = opts.fromId
+      if (opts?.toId) where.toEntityId = opts.toId
       return prisma.kgRelation.findMany({ where })
     },
 
     async addRelation(input) {
-      // 解析两端实体的 workspaceId（通过 findFirst 按 name 查）
+      // 解析两端实体（限定在同一 workspace）
       const [from, to] = await Promise.all([
-        prisma.kgEntity.findFirst({ where: { name: input.fromName } }),
-        prisma.kgEntity.findFirst({ where: { name: input.toName } }),
+        prisma.kgEntity.findUnique({
+          where: { workspaceId_name: { workspaceId: input.workspaceId, name: input.fromName } },
+        }),
+        prisma.kgEntity.findUnique({
+          where: { workspaceId_name: { workspaceId: input.workspaceId, name: input.toName } },
+        }),
       ])
-      const fromWs = from?.workspaceId ?? ''
-      const toWs = to?.workspaceId ?? ''
-      if (!from) throw new EntityNotFoundError(fromWs, input.fromName)
-      if (!to) throw new EntityNotFoundError(toWs, input.toName)
+      if (!from) throw new EntityNotFoundError(input.workspaceId, input.fromName)
+      if (!to) throw new EntityNotFoundError(input.workspaceId, input.toName)
 
       return prisma.kgRelation.create({
         data: {

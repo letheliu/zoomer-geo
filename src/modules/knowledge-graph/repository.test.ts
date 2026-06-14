@@ -5,16 +5,29 @@ import type { PrismaClient } from '@prisma/client'
 function mockPrisma() {
   const entities = new Map<string, any>([
     ['w1::zoomer AI', { id: 'e1', workspaceId: 'w1', name: 'zoomer AI', type: 'SoftwareApplication', properties: {} }],
+    ['w2::zoomer AI', { id: 'e2', workspaceId: 'w2', name: 'zoomer AI', type: 'SoftwareApplication', properties: {} }],
   ])
   return {
     kgEntity: {
       findUnique: vi.fn().mockImplementation(async ({ where }: any) => {
-        const key = `${where.workspaceId_name?.workspaceId}::${where.workspaceId_name?.name}`
-        return entities.get(key) ?? (where.id ? entities.get(`w1::${where.id}`) : null)
+        if (where.workspaceId_name) {
+          const key = `${where.workspaceId_name.workspaceId}::${where.workspaceId_name.name}`
+          return entities.get(key) ?? null
+        }
+        if (where.id) {
+          return Array.from(entities.values()).find((e) => e.id === where.id) ?? null
+        }
+        return null
       }),
-      findFirst: vi.fn().mockImplementation(async ({ where }: any) =>
-        Array.from(entities.values()).find((e) => e.name === where.name) ?? null,
-      ),
+      findFirst: vi.fn().mockImplementation(async ({ where }: any) => {
+        if (where.id && where.workspaceId) {
+          return Array.from(entities.values()).find((e) => e.id === where.id && e.workspaceId === where.workspaceId) ?? null
+        }
+        if (where.name) {
+          return Array.from(entities.values()).find((e) => e.name === where.name) ?? null
+        }
+        return null
+      }),
       findMany: vi.fn().mockResolvedValue(Array.from(entities.values())),
       create: vi.fn().mockImplementation(async ({ data }: any) => {
         const id = `e-${Math.random()}`
@@ -70,15 +83,31 @@ describe('KgRepository', () => {
     const repo = createKgRepository(prisma)
     await repo.addEntity({ workspaceId: 'w1', name: 'A', type: 'X', properties: {} })
     await repo.addEntity({ workspaceId: 'w1', name: 'B', type: 'X', properties: {} })
-    const rel = await repo.addRelation({ fromName: 'A', toName: 'B', relationType: 'competitor' })
+    const rel = await repo.addRelation({ workspaceId: 'w1', fromName: 'A', toName: 'B', relationType: 'competitor' })
     expect(rel.id).toBeDefined()
   })
 
   it('addRelation 任一端实体不存在时抛 EntityNotFoundError', async () => {
     const repo = createKgRepository(mockPrisma())
     await expect(
-      repo.addRelation({ fromName: 'missing', toName: 'B', relationType: 'competitor' }),
+      repo.addRelation({ workspaceId: 'w1', fromName: 'missing', toName: 'B', relationType: 'competitor' }),
     ).rejects.toThrow(EntityNotFoundError)
+  })
+
+  it('addRelation 不会跨 workspace 串到同名实体', async () => {
+    const repo = createKgRepository(mockPrisma())
+    // w1 中没有 zoomer AI 之外的实体，但 w2 有
+    await expect(
+      repo.addRelation({ workspaceId: 'w2', fromName: 'zoomer AI', toName: 'missingInW2', relationType: 'competitor' }),
+    ).rejects.toThrow(EntityNotFoundError)
+  })
+
+  it('findEntityById 限定 workspaceId', async () => {
+    const repo = createKgRepository(mockPrisma())
+    // w2 中的 e2 在 w1 中查不到
+    expect(await repo.findEntityById('w1', 'e2')).toBeNull()
+    // 同样 id 但 w1 中也没有
+    expect(await repo.findEntityById('w1', 'e1')).not.toBeNull()
   })
 
   it('removeEntity 调用 prisma.delete', async () => {

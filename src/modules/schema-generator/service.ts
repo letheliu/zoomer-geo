@@ -2,7 +2,10 @@ import type { PrismaClient, SchemaRecord } from '@prisma/client'
 import type { EntityExtractorService } from '../../core/extract/entity-extractor.js'
 import type { SchemaAdapterService } from '../../core/extract/adapters/schema-adapter.js'
 import type { JsonLdDocument } from './types.js'
-import type { JsonLdBuilderService, LlmsTxtBuilderService, SchemaValidatorService, SupportedSchemaType } from './types.js'
+import type { JsonLdBuilderService } from './jsonld-builder.js'
+import type { LlmsTxtBuilderService } from './llms-txt-builder.js'
+import type { SchemaValidatorService } from './validator.js'
+import type { SupportedSchemaType } from './types.js'
 import type { AutoSectionsService } from './auto-sections.js'
 import type { AutoSectionsResult, LlmsTxtInput } from './types.js'
 import type { SchemaRegistryService } from './schema-registry.js'
@@ -55,7 +58,7 @@ export function createSchemaService(deps: {
       const jsonld = deps.jsonLdBuilder.build({ type: input.schemaType, fields: input.fields })
       const validation = deps.validator.validate(jsonld)
       if (!validation.valid) {
-        throw new Error(`Schema validation failed: ${validation.errors.map((e) => e.message).join('; ')}`)
+        throw new Error(`Schema validation failed: ${validation.errors.map((e: { message: string }) => e.message).join('; ')}`)
       }
 
       const version = await getNextVersion(input.workspaceId, input.pageUrl)

@@ -7,7 +7,7 @@ describe('SchemaRegistry', () => {
   it('list 返回全部 6 种支持的类型', () => {
     const types = registry.list()
     expect(types).toHaveLength(6)
-    expect(types).toEqual(expect.arrayContaining(SUPPORTED_TYPES))
+    expect(types).toEqual(expect.arrayContaining([...SUPPORTED_TYPES]))
   })
 
   it('isSupported 对白名单类型返回 true', () => {

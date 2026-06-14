@@ -103,27 +103,46 @@ export function createSchemaService(deps: {
       const extraction = await deps.extractor.extract(page.currentContent)
       const schemaEntities = deps.schemaAdapter.adapt(extraction.entities)
 
-      const records: SchemaRecord[] = []
+      // 1. 预收集通过 validate 的实体类型（按 type 去重）
+      const validTypes = new Set<SupportedSchemaType>()
+      const validated: Array<{ entity: typeof schemaEntities[number]; jsonld: JsonLdDocument }> = []
       for (const entity of schemaEntities) {
         try {
           const jsonld = deps.jsonLdBuilder.build({ type: entity.type, fields: entity.fields })
           const validation = deps.validator.validate(jsonld)
           if (!validation.valid) continue
-
-          const version = await getNextVersion(page.workspaceId, page.url)
-          const record = await deps.prisma.schemaRecord.create({
-            data: {
-              workspaceId: page.workspaceId,
-              pageUrl: page.url,
-              schemaType: entity.type,
-              content: jsonld as any,
-              version,
-            },
-          })
-          records.push(record)
+          validTypes.add(entity.type)
+          validated.push({ entity, jsonld })
         } catch {
-          // 跳过校验/构建失败的实体
+          // 跳过构建/校验失败的实体
         }
+      }
+
+      // 2. 清理同一 workspace + pageUrl 上 pass-types 的旧记录，防止无界增长
+      if (validTypes.size > 0) {
+        await deps.prisma.schemaRecord.deleteMany({
+          where: {
+            workspaceId: page.workspaceId,
+            pageUrl: page.url,
+            schemaType: { in: Array.from(validTypes) },
+          },
+        })
+      }
+
+      // 3. 写入新记录
+      const records: SchemaRecord[] = []
+      for (const { entity, jsonld } of validated) {
+        const version = await getNextVersion(page.workspaceId, page.url)
+        const record = await deps.prisma.schemaRecord.create({
+          data: {
+            workspaceId: page.workspaceId,
+            pageUrl: page.url,
+            schemaType: entity.type,
+            content: jsonld as any,
+            version,
+          },
+        })
+        records.push(record)
       }
       return records
     },

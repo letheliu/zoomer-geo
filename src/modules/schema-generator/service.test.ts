@@ -20,10 +20,12 @@ function mockPrisma() {
       findFirst: vi.fn().mockResolvedValue({ version: 1 }),
       findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn().mockResolvedValue(null),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     contentPage: {
       findUnique: vi.fn().mockResolvedValue({
         id: 'page-1',
+        workspaceId: 'w1',
         url: 'https://x.com/landing',
         currentContent: 'zoomer AI 是 AI 设计工具',
       }),
@@ -134,6 +136,30 @@ describe('SchemaService', () => {
     const svc = createSchemaService(deps)
     const records = await svc.regenerateForPage('page-1')
     expect(records).toEqual([])
+  })
+
+  it('regenerateForPage 写入前清理同 pageUrl 同 schemaType 的旧记录', async () => {
+    const deps = mockDeps()
+    const svc = createSchemaService(deps)
+    const records = await svc.regenerateForPage('page-1')
+    expect(records.length).toBeGreaterThan(0)
+    expect(deps.prisma.schemaRecord.deleteMany).toHaveBeenCalledWith({
+      where: {
+        workspaceId: 'w1',
+        pageUrl: 'https://x.com/landing',
+        schemaType: { in: ['SoftwareApplication'] },
+      },
+    })
+  })
+
+  it('regenerateForPage 当无有效实体时不调用 deleteMany', async () => {
+    const deps = mockDeps()
+    ;(deps.validator.validate as any).mockReturnValue({
+      valid: false, errors: [{ path: '@type', message: 'bad', code: 'INVALID_TYPE' }],
+    })
+    const svc = createSchemaService(deps)
+    await svc.regenerateForPage('page-1')
+    expect(deps.prisma.schemaRecord.deleteMany).not.toHaveBeenCalled()
   })
 
   it('buildAutoSections 透传', async () => {

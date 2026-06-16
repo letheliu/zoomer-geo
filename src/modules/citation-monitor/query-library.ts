@@ -64,10 +64,20 @@ export function createQueryLibraryService(
       const res = await llm.chat([{ role: 'user', content: prompt }], { temperature: 0.7 })
       let queries: string[]
       try {
-        queries = JSON.parse(res.text)
+        // 尝试提取 JSON 数组
+        const text = res.text.trim()
+        const jsonMatch = text.match(/\[[\s\S]*\]/)
+        if (jsonMatch) {
+          queries = JSON.parse(jsonMatch[0])
+        } else {
+          throw new Error('No JSON array found')
+        }
       } catch {
-        // 兜底：按行解析
-        queries = res.text.split('\n').map((s) => s.trim()).filter(Boolean)
+        // 兜底：按行解析，过滤掉非查询文本
+        queries = res.text
+          .split('\n')
+          .map((s) => s.trim().replace(/^["'\d]+\.?\s*/, '').replace(/["']$/, ''))
+          .filter((s) => s && s.length > 2 && !s.startsWith('[') && !s.startsWith(']'))
       }
 
       const created: CitationQuery[] = []

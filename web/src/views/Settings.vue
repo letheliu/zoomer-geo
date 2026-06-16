@@ -14,19 +14,19 @@ const apiKeyDisplay = ref('')
 
 const wsInfo = ref<any>(null)
 const platformConfig = ref<Record<string, string>>({
-  OPENAI_API_KEY: '',
-  PERPLEXITY_API_KEY: '',
-  ANTHROPIC_API_KEY: '',
-  GEMINI_API_KEY: '',
   DEEPSEEK_API_KEY: '',
+  DOUBAO_API_KEY: '',
+  QWEN_API_KEY: '',
+  ERNIE_API_KEY: '',
+  ERNIE_SECRET_KEY: '',
 })
 
 const platformLabels: Record<string, string> = {
-  OPENAI_API_KEY: 'OpenAI',
-  PERPLEXITY_API_KEY: 'Perplexity',
-  ANTHROPIC_API_KEY: 'Anthropic',
-  GEMINI_API_KEY: 'Gemini',
   DEEPSEEK_API_KEY: 'DeepSeek',
+  DOUBAO_API_KEY: '豆包（火山引擎）',
+  QWEN_API_KEY: '通义千问（阿里云）',
+  ERNIE_API_KEY: '文心一言 API Key',
+  ERNIE_SECRET_KEY: '文心一言 Secret Key',
 }
 
 onMounted(async () => {

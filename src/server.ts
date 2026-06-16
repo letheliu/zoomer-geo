@@ -7,11 +7,10 @@ import { createContext } from './core/trpc/context.js'
 import { getPrismaClient } from './core/db/client.js'
 import { createQueue } from './core/queue/boss.js'
 import { createAdapterRegistry } from './modules/citation-monitor/platform-adapters/registry.js'
-import { OpenAiAdapter } from './modules/citation-monitor/platform-adapters/openai.js'
-import { PerplexityAdapter } from './modules/citation-monitor/platform-adapters/perplexity.js'
-import { AnthropicAdapter } from './modules/citation-monitor/platform-adapters/anthropic.js'
-import { GeminiAdapter } from './modules/citation-monitor/platform-adapters/gemini.js'
 import { DeepSeekAdapter } from './modules/citation-monitor/platform-adapters/deepseek.js'
+import { DoubaoAdapter } from './modules/citation-monitor/platform-adapters/doubao.js'
+import { QwenAdapter } from './modules/citation-monitor/platform-adapters/qwen.js'
+import { ErnieAdapter } from './modules/citation-monitor/platform-adapters/ernie.js'
 import { createQueryLibraryService } from './modules/citation-monitor/query-library.js'
 import { createMonitor } from './modules/citation-monitor/monitor.js'
 import { startCitationScheduler } from './workers/citation-scheduler.js'
@@ -37,16 +36,15 @@ import { createGraphExporter } from './modules/knowledge-graph/exporter.js'
 import { createKgService } from './modules/knowledge-graph/service.js'
 
 async function main() {
-  const port = Number(process.env.PORT || 3000)
+  const port = Number(process.env.PORT || 4000)
   const prisma = getPrismaClient()
 
-  // 组装 adapter registry
+  // 组装 adapter registry（国内平台）
   const registry = createAdapterRegistry()
-  registry.register(new OpenAiAdapter())
-  registry.register(new PerplexityAdapter())
-  registry.register(new AnthropicAdapter())
-  registry.register(new GeminiAdapter())
   registry.register(new DeepSeekAdapter())
+  registry.register(new DoubaoAdapter())
+  registry.register(new QwenAdapter())
+  registry.register(new ErnieAdapter())
 
   const queryLibrary = createQueryLibraryService(prisma, getLlmProvider())
   const monitor = createMonitor({

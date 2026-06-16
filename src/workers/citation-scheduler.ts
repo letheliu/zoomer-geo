@@ -15,6 +15,9 @@ export async function startCitationScheduler(deps: SchedulerDeps): Promise<void>
   const jobName = 'citation-monitor-daily'
   const cron = deps.cron || DEFAULT_CRON
 
+  // pg-boss v10 要求 queue 必须先存在才能 schedule / work
+  await deps.boss.createQueue(jobName)
+
   await deps.boss.schedule(jobName, cron, { platforms: ['openai', 'perplexity'] })
 
   await deps.boss.work(jobName, async (job: any) => {

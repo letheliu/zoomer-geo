@@ -7,53 +7,151 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============ 基础：多租户 ============
-
 model Workspace {
-  id               String          @id @default(cuid())
+  id               String             @id @default(cuid())
   name             String
   domain           String?
   llmsTxtUrl       String?
   defaultBrandName String
   apiKeyHash       String
-  platformConfig   Json            @default("{}")
-  status           WorkspaceStatus @default(ACTIVE)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-
-  queries          CitationQuery[]
+  platformConfig   Json               @default("{}")
+  status           WorkspaceStatus    @default(ACTIVE)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
   events           CitationEvent[]
+  queries          CitationQuery[]
   pages            ContentPage[]
+  entities         KgEntity[]
   tasks            OptimizationTask[]
   schemas          SchemaRecord[]
-  entities         KgEntity[]
 
   @@index([status])
+}
+
+model CitationQuery {
+  id          String             @id @default(cuid())
+  workspaceId String
+  queryText   String
+  intent      Json               @default("{}")
+  source      QuerySource
+  status      QueryStatus        @default(ACTIVE)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  embedding   Json?
+  events      CitationEvent[]
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks       OptimizationTask[]
+
+  @@index([workspaceId, status])
+}
+
+model CitationEvent {
+  id             String        @id @default(cuid())
+  workspaceId    String
+  queryId        String
+  platform       String
+  brandMentioned Boolean
+  rankInAnswer   Int?
+  citedUrls      Json          @default("[]")
+  competitors    Json          @default("[]")
+  rawAnswer      String
+  sovScore       Float?
+  capturedAt     DateTime      @default(now())
+  embedding      Json?
+  query          CitationQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, platform, capturedAt])
+  @@index([queryId, capturedAt])
+}
+
+model ContentPage {
+  id                String             @id @default(cuid())
+  workspaceId       String
+  url               String
+  pageType          String
+  currentContent    String
+  optimizedContent  String?
+  optimizationScore Float?
+  status            ContentStatus      @default(DRAFT)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks             OptimizationTask[]
+
+  @@unique([workspaceId, url])
+  @@index([workspaceId, status])
+}
+
+model OptimizationTask {
+  id                  String         @id @default(cuid())
+  workspaceId         String
+  type                TaskType
+  queryId             String?
+  pageId              String?
+  status              TaskStatus     @default(PENDING)
+  beforeScore         Float?
+  afterScore          Float?
+  result              Json?
+  reviewNote          String?
+  extractionProposals Json?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  page                ContentPage?   @relation(fields: [pageId], references: [id])
+  query               CitationQuery? @relation(fields: [queryId], references: [id])
+  workspace           Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+}
+
+model SchemaRecord {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  pageUrl        String
+  schemaType     String
+  content        Json
+  llmsTxtSection String?
+  version        Int       @default(1)
+  createdAt      DateTime  @default(now())
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, pageUrl])
+  @@index([workspaceId, schemaType])
+}
+
+model KgEntity {
+  id            String       @id @default(cuid())
+  workspaceId   String
+  name          String
+  type          String
+  properties    Json         @default("{}")
+  sourceUrl     String?
+  createdAt     DateTime     @default(now())
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  relationsFrom KgRelation[] @relation("RelationFrom")
+  relationsTo   KgRelation[] @relation("RelationTo")
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, type])
+}
+
+model KgRelation {
+  id           String   @id @default(cuid())
+  fromEntityId String
+  toEntityId   String
+  relationType String
+  properties   Json     @default("{}")
+  createdAt    DateTime @default(now())
+  fromEntity   KgEntity @relation("RelationFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
+  toEntity     KgEntity @relation("RelationTo", fields: [toEntityId], references: [id], onDelete: Cascade)
+
+  @@index([fromEntityId])
+  @@index([toEntityId])
 }
 
 enum WorkspaceStatus {
   ACTIVE
   SUSPENDED
-}
-
-// ============ 模块 1：引用监测 ============
-
-model CitationQuery {
-  id          String      @id @default(cuid())
-  workspaceId String
-  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  queryText   String
-  intent      Json        @default("{}")
-  source      QuerySource
-  status      QueryStatus @default(ACTIVE)
-  embedding   Json?       // 方案 A：存 number[]（1536 维），应用层算余弦相似度
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  events      CitationEvent[]
-  tasks       OptimizationTask[]
-
-  @@index([workspaceId, status])
 }
 
 enum QuerySource {
@@ -69,72 +167,10 @@ enum QueryStatus {
   PAUSED
 }
 
-model CitationEvent {
-  id             String        @id @default(cuid())
-  workspaceId    String
-  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  queryId        String
-  query          CitationQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
-  platform       String
-  brandMentioned Boolean
-  rankInAnswer   Int?
-  citedUrls      Json          @default("[]")
-  competitors    Json          @default("[]")
-  rawAnswer      String        @db.Text
-  sovScore       Float?
-  embedding      Json?         // 方案 A：存 number[]（1536 维），应用层算余弦相似度
-  capturedAt     DateTime      @default(now())
-
-  @@index([workspaceId, platform, capturedAt])
-  @@index([queryId, capturedAt])
-}
-
-// ============ 模块 2：内容优化 ============
-
-model ContentPage {
-  id                String        @id @default(cuid())
-  workspaceId       String
-  workspace         Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  url               String
-  pageType          String
-  currentContent    String        @db.Text
-  optimizedContent  String?       @db.Text
-  optimizationScore Float?
-  status            ContentStatus @default(DRAFT)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-
-  tasks             OptimizationTask[]
-
-  @@unique([workspaceId, url])
-  @@index([workspaceId, status])
-}
-
 enum ContentStatus {
   DRAFT
   REVIEWED
   PUBLISHED
-}
-
-model OptimizationTask {
-  id           String      @id @default(cuid())
-  workspaceId  String
-  workspace    Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  type         TaskType
-  queryId      String?
-  query        CitationQuery? @relation(fields: [queryId], references: [id])
-  pageId       String?
-  page         ContentPage?   @relation(fields: [pageId], references: [id])
-  status       TaskStatus  @default(PENDING)
-  beforeScore  Float?
-  afterScore   Float?
-  result       Json?
-  reviewNote   String?     @db.Text
-  extractionProposals Json?        // 新增：KG 待持久化数据，type=UPDATE_KG 时使用
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  @@index([workspaceId, status])
 }
 
 enum TaskType {
@@ -150,54 +186,4 @@ enum TaskStatus {
   REVIEWED
   PUBLISHED
   FAILED
-}
-
-// ============ 模块 3：Schema 生成 ============
-
-model SchemaRecord {
-  id              String   @id @default(cuid())
-  workspaceId     String
-  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  pageUrl         String
-  schemaType      String
-  content         Json
-  llmsTxtSection  String?
-  version         Int       @default(1)
-  createdAt       DateTime  @default(now())
-
-  @@index([workspaceId, pageUrl])
-  @@index([workspaceId, schemaType])
-}
-
-// ============ 模块 4：知识图谱 ============
-
-model KgEntity {
-  id          String   @id @default(cuid())
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name        String
-  type        String
-  properties  Json      @default("{}")
-  sourceUrl   String?
-  createdAt   DateTime  @default(now())
-
-  relationsFrom KgRelation[] @relation("RelationFrom")
-  relationsTo   KgRelation[] @relation("RelationTo")
-
-  @@unique([workspaceId, name])
-  @@index([workspaceId, type])
-}
-
-model KgRelation {
-  id           String   @id @default(cuid())
-  fromEntityId String
-  fromEntity   KgEntity  @relation("RelationFrom", fields: [fromEntityId], references: [id], onDelete: Cascade)
-  toEntityId   String
-  toEntity     KgEntity  @relation("RelationTo", fields: [toEntityId], references: [id], onDelete: Cascade)
-  relationType String
-  properties   Json      @default("{}")
-  createdAt    DateTime  @default(now())
-
-  @@index([fromEntityId])
-  @@index([toEntityId])
 }

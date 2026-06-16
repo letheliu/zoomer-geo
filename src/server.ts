@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
+import cors from '@fastify/cors'
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify'
 import { appRouter } from './router.js'
 import { createContext } from './core/trpc/context.js'
@@ -122,6 +123,10 @@ async function main() {
   }
 
   const fastify = Fastify({ logger: true })
+  await fastify.register(cors, {
+    origin: true,
+    credentials: true,
+  })
   await fastify.register(fastifyTRPCPlugin, {
     prefix: '/trpc',
     trpcOptions: {

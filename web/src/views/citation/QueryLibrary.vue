@@ -89,6 +89,31 @@ async function handleGenerate() {
   }
 }
 
+async function handleToggle(row: any) {
+  try {
+    if (row.status === 'ACTIVE') {
+      await trpc.citation.queries.pause.mutate({ id: row.id })
+      message.success('已暂停')
+    } else {
+      // 需要重新激活，暂时用删除后重新添加
+      message.info('请重新添加')
+    }
+    await loadData()
+  } catch (e: any) {
+    message.error(e?.message || '操作失败')
+  }
+}
+
+async function handleDelete(id: string) {
+  try {
+    await trpc.citation.queries.delete.mutate({ id })
+    message.success('已删除')
+    await loadData()
+  } catch (e: any) {
+    message.error(e?.message || '删除失败')
+  }
+}
+
 const columns: DataTableColumns<any> = [
   {
     title: '状态',
@@ -119,6 +144,28 @@ const columns: DataTableColumns<any> = [
     width: 180,
     render(row) {
       return new Date(row.createdAt).toLocaleString('zh-CN')
+    },
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 150,
+    render(row) {
+      return h(NSpace, { size: 'small' }, {
+        default: () => [
+          h(NButton, {
+            size: 'tiny',
+            type: row.status === 'ACTIVE' ? 'warning' : 'success',
+            onClick: () => handleToggle(row),
+          }, { default: () => row.status === 'ACTIVE' ? '暂停' : '激活' }),
+          h(NPopconfirm, {
+            onPositiveClick: () => handleDelete(row.id),
+          }, {
+            trigger: () => h(NButton, { size: 'tiny', type: 'error' }, { default: () => '删除' }),
+            default: () => '确认删除？',
+          }),
+        ],
+      })
     },
   },
 ]

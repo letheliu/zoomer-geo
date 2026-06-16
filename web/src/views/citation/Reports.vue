@@ -21,16 +21,15 @@ const platformFilter = ref<string | null>(null)
 
 const platformOptions = [
   { label: '全部', value: '' },
-  { label: 'OpenAI', value: 'openai' },
-  { label: 'Perplexity', value: 'perplexity' },
-  { label: 'Anthropic', value: 'anthropic' },
-  { label: 'Gemini', value: 'gemini' },
   { label: 'DeepSeek', value: 'deepseek' },
+  { label: '豆包', value: 'doubao' },
+  { label: '通义千问', value: 'qwen' },
+  { label: '文心一言', value: 'ernie' },
 ]
 
 // Trigger monitor modal
 const showTrackModal = ref(false)
-const trackPlatforms = ref<string[]>(['openai'])
+const trackPlatforms = ref<string[]>(['deepseek'])
 const trackQuery = ref('')
 const trackLoading = ref(false)
 
@@ -39,11 +38,10 @@ const showDetail = ref(false)
 const selectedEvent = ref<any>(null)
 
 const platformCheckbox = [
-  { label: 'OpenAI', value: 'openai' },
-  { label: 'Perplexity', value: 'perplexity' },
-  { label: 'Anthropic', value: 'anthropic' },
-  { label: 'Gemini', value: 'gemini' },
   { label: 'DeepSeek', value: 'deepseek' },
+  { label: '豆包', value: 'doubao' },
+  { label: '通义千问', value: 'qwen' },
+  { label: '文心一言', value: 'ernie' },
 ]
 
 async function loadData() {

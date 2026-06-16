@@ -106,5 +106,18 @@ export const citationRouter = router({
           count: input.count,
         })
       }),
+
+    pause: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        return ctx.services.queryLibrary.pauseQuery(input.id)
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        await ctx.services.queryLibrary.deleteQuery(input.id)
+        return { ok: true }
+      }),
   }),
 })

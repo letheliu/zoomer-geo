@@ -97,11 +97,6 @@ async function handleOptimize() {
     optimizing.value = false
   }
 }
-
-const atomScoreIcons = (score: number) => {
-  const icons: string[] = []
-  return score >= 70 ? '✅' : '⚠️'
-}
 </script>
 
 <template>
@@ -153,8 +148,8 @@ const atomScoreIcons = (score: number) => {
                     style="padding: 10px; border: 1px solid var(--divider-color); border-radius: 6px"
                   >
                     <NSpace align="center" justify="space-between" style="margin-bottom: 4px">
-                      <NTag size="small" :type="atom.score >= 70 ? 'success' : 'warning'">
-                        {{ atomScoreIcons(atom.score) }} Atom #{{ i + 1 }} · 分数 {{ atom.score ?? '-' }}
+                      <NTag size="small" :type="(atom.score?.total ?? 0) >= 70 ? 'success' : 'warning'">
+                        {{ (atom.score?.total ?? 0) >= 70 ? '✅' : '⚠️' }} Atom #{{ i + 1 }} · 分数 {{ atom.score?.total ?? '-' }}
                       </NTag>
                     </NSpace>
                     <div style="font-size: 13px; line-height: 1.6">{{ atom.text }}</div>

@@ -26,7 +26,7 @@ export function createMonitor(deps: MonitorDeps): Monitor {
   async function processOne(
     query: { id: string; workspaceId: string; queryText: string },
     platform: string,
-    workspace: { defaultBrandName: string; platformConfig: any },
+    workspace: { defaultBrandName: string; platformConfig: any; competitors?: string[] },
   ): Promise<CitationEvent | null> {
     const adapter = deps.registry.get(platform)
     if (!adapter) return null
@@ -36,7 +36,7 @@ export function createMonitor(deps: MonitorDeps): Monitor {
       const analysis = analyzeCitation({
         platformResult,
         brand: workspace.defaultBrandName,
-        competitors: deps.competitors,
+        competitors: workspace.competitors || deps.competitors,
       })
       return deps.prisma.citationEvent.create({
         data: {
@@ -64,11 +64,18 @@ export function createMonitor(deps: MonitorDeps): Monitor {
       })
       if (!workspace) throw new Error(`Workspace not found: ${input.workspaceId}`)
 
+      const cfg = (workspace.platformConfig as any) || {}
+      const workspaceCompetitors: string[] = Array.isArray(cfg.competitors) ? cfg.competitors : []
+      const allCompetitors = [...new Set([...deps.competitors, ...workspaceCompetitors])]
+
       const queries = await deps.queryLibrary.listActive(input.workspaceId)
       const tasks: Promise<CitationEvent | null>[] = []
       for (const q of queries) {
         for (const platform of input.platforms) {
-          tasks.push(processOne(q, platform, workspace as any))
+          tasks.push(processOne(q, platform, {
+            ...workspace as any,
+            competitors: allCompetitors,
+          }))
         }
       }
       // 简单并发控制：分批

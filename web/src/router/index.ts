@@ -35,6 +35,11 @@ export const router = createRouter({
           component: () => import('../views/citation/SovAnalytics.vue'),
         },
         {
+          path: 'citation/effect',
+          name: 'citation-effect',
+          component: () => import('../views/citation/EffectComparison.vue'),
+        },
+        {
           path: 'content/pages',
           name: 'content-pages',
           component: () => import('../views/content/Pages.vue'),

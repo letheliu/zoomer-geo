@@ -1,9 +1,15 @@
 import { z } from 'zod'
-import { router, publicProcedure } from '../trpc/init.js'
+import { router, publicProcedure, protectedProcedure } from '../trpc/init.js'
 import { getPrismaClient } from '../db/client.js'
 import { createWorkspaceService } from './service.js'
 
 export const workspaceRouter = router({
+  // 获取当前 workspace 信息
+  get: protectedProcedure
+    .query(async ({ ctx }) => {
+      return ctx.workspace
+    }),
+
   // 注册新 workspace（仅引导阶段开放，生产应加管理员鉴权）
   register: publicProcedure
     .input(z.object({

@@ -71,6 +71,61 @@ export const citationRouter = router({
       return { sovScore, totalEvents: events.length, mentionedCount: mentioned }
     }),
 
+  // 效果对比：按时间段对比 SOV 变化
+  getEffectComparison: protectedProcedure
+    .input(z.object({
+      before: z.object({ start: z.string(), end: z.string() }),
+      after: z.object({ start: z.string(), end: z.string() }),
+      platform: z.string().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const baseWhere = {
+        workspaceId: ctx.workspace.id,
+        ...(input.platform ? { platform: input.platform } : {}),
+      }
+
+      const [beforeEvents, afterEvents] = await Promise.all([
+        ctx.services.prisma.citationEvent.findMany({
+          where: {
+            ...baseWhere,
+            capturedAt: { gte: new Date(input.before.start), lte: new Date(input.before.end) },
+          },
+        }),
+        ctx.services.prisma.citationEvent.findMany({
+          where: {
+            ...baseWhere,
+            capturedAt: { gte: new Date(input.after.start), lte: new Date(input.after.end) },
+          },
+        }),
+      ])
+
+      function calcStats(events: any[]) {
+        const mentioned = events.filter((e) => e.brandMentioned).length
+        const sov = events.length > 0 ? mentioned / events.length : 0
+        const avgRank = events
+          .filter((e) => e.rankInAnswer)
+          .reduce((sum, e, _, arr) => sum + (e.rankInAnswer ?? 0) / arr.length, 0)
+        return { totalEvents: events.length, mentionedCount: mentioned, sov, avgRank }
+      }
+
+      const beforeStats = calcStats(beforeEvents)
+      const afterStats = calcStats(afterEvents)
+
+      return {
+        before: beforeStats,
+        after: afterStats,
+        delta: {
+          sov: afterStats.sov - beforeStats.sov,
+          mentionRate: afterStats.totalEvents > 0
+            ? afterStats.mentionedCount / afterStats.totalEvents
+            : 0 - (beforeStats.totalEvents > 0
+              ? beforeStats.mentionedCount / beforeStats.totalEvents
+              : 0),
+          avgRank: afterStats.avgRank - beforeStats.avgRank,
+        },
+      }
+    }),
+
   // query 库管理
   queries: router({
     list: protectedProcedure

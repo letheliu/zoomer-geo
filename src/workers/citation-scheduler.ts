@@ -27,7 +27,7 @@ export async function startCitationScheduler(deps: SchedulerDeps): Promise<void>
       where: { status: 'ACTIVE' },
     })
     for (const ws of workspaces) {
-      const cfg = (ws.platformConfig as Record<string, string>) || {}
+      const cfg = (ws.platformConfig as Record<string, Record<string, string>>) || {}
       const activePlatforms = KNOWN_PLATFORMS.filter((p) => {
         const keyMap: Record<string, string[]> = {
           deepseek: ['DEEPSEEK_API_KEY'],
@@ -36,7 +36,8 @@ export async function startCitationScheduler(deps: SchedulerDeps): Promise<void>
           ernie: ['ERNIE_API_KEY', 'ERNIE_SECRET_KEY'],
         }
         const keys = keyMap[p] || []
-        return keys.every((k) => cfg[k])
+        const pCfg = cfg[p] || {}
+        return keys.every((k) => pCfg[k])
       })
       if (activePlatforms.length === 0) continue
       try {

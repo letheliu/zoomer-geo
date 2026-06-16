@@ -31,7 +31,7 @@ export class ErnieAdapter implements PlatformAdapter {
       }
     )
     if (!res.ok) {
-      throw new Error(`Ernie adapter failed: ${res.status} ${await res.text()}`)
+      throw new Error(`Ernie adapter failed: ${res.status} ${res.statusText}`)
     }
     const json = (await res.json()) as { result: string }
     const answer = json.result

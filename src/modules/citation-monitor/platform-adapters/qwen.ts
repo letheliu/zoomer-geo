@@ -23,7 +23,7 @@ export class QwenAdapter implements PlatformAdapter {
       }),
     })
     if (!res.ok) {
-      throw new Error(`Qwen adapter failed: ${res.status} ${await res.text()}`)
+      throw new Error(`Qwen adapter failed: ${res.status} ${res.statusText}`)
     }
     const json = (await res.json()) as {
       choices: { message: { content: string } }[]

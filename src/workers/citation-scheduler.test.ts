@@ -7,6 +7,7 @@ describe('citation scheduler', () => {
 
   beforeEach(() => {
     boss = {
+      createQueue: vi.fn().mockResolvedValue(undefined),
       schedule: vi.fn().mockResolvedValue(undefined),
       work: vi.fn().mockResolvedValue(undefined),
     }

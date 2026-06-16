@@ -8,7 +8,8 @@ export async function createContext(
 ): Promise<Partial<Context>> {
   const prisma = getPrismaClient()
   const workspaceService = createWorkspaceService(prisma)
-  const apiKey = opts.req.headers['x-api-key'] as string | undefined
+  const rawApiKey = opts.req.headers['x-api-key']
+  const apiKey = Array.isArray(rawApiKey) ? rawApiKey[0] : rawApiKey
   const workspace = await resolveWorkspaceFromHeader(apiKey, workspaceService)
   return { workspace: workspace ?? undefined }
 }

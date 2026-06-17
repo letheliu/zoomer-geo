@@ -10,7 +10,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 5170,
     proxy: {
       '/trpc': {
         target: 'http://localhost:3000',

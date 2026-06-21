@@ -107,4 +107,19 @@ describe('ScoringEngine', () => {
   it('空数组评分返回 0', () => {
     expect(scoring.scorePage(scoring.scoreAtoms([]))).toBe(0)
   })
+
+  it('scorePageComposite 按权重计算综合分', () => {
+    const composite = scoring.scorePageComposite(100, 100, 100)
+    expect(composite).toBe(100)
+  })
+
+  it('scorePageComposite 权重分配正确', () => {
+    const composite = scoring.scorePageComposite(80, 60, 70)
+    const expected = Math.round(80 * 0.4 + 60 * 0.25 + 70 * 0.35)
+    expect(composite).toBe(expected)
+  })
+
+  it('scorePageComposite 零分输入返回 0', () => {
+    expect(scoring.scorePageComposite(0, 0, 0)).toBe(0)
+  })
 })

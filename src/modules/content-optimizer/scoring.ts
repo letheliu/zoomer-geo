@@ -1,4 +1,6 @@
 import type { Atom, ScoredAtom, AtomScore } from './types.js'
+import type { CitabilityService, CitabilityInput } from './citability.js'
+import { createCitabilityEngine } from './citability.js'
 
 const WEIGHTS = {
   numericAnchor: 35,
@@ -6,6 +8,10 @@ const WEIGHTS = {
   selfContained: 25,
   definition: 15,
 } as const
+
+const ATOM_WEIGHT = 0.4
+const CITABILITY_WEIGHT = 0.25
+const EEAT_WEIGHT = 0.35
 
 const THRESHOLD = 70
 
@@ -52,9 +58,16 @@ function scoreAtom(atom: Atom): AtomScore {
 export interface ScoringService {
   scoreAtoms(atoms: Atom[]): ScoredAtom[]
   scorePage(scored: ScoredAtom[]): number
+  scorePageComposite(
+    atomScore: number,
+    citabilityScore: number,
+    eeatScore: number,
+  ): number
 }
 
-export function createScoringEngine(): ScoringService {
+export function createScoringEngine(citability?: CitabilityService): ScoringService {
+  const cit = citability ?? createCitabilityEngine()
+
   return {
     scoreAtoms(atoms) {
       return atoms.map((atom) => ({ ...atom, score: scoreAtom(atom) }))
@@ -64,6 +77,12 @@ export function createScoringEngine(): ScoringService {
       if (scored.length === 0) return 0
       const sum = scored.reduce((acc, a) => acc + a.score.total, 0)
       return Math.round(sum / scored.length)
+    },
+
+    scorePageComposite(atomScore, citabilityScore, eeatScore) {
+      return Math.round(
+        atomScore * ATOM_WEIGHT + citabilityScore * CITABILITY_WEIGHT + eeatScore * EEAT_WEIGHT,
+      )
     },
   }
 }

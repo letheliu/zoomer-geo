@@ -1,10 +1,12 @@
 import type { PrismaClient } from '@prisma/client'
-import type { Atom, ScoredAtom, FaqPair, OptimizationResult } from './types.js'
+import type { Atom, ScoredAtom, FaqPair, OptimizationResult, EeatInput, CitabilityInput } from './types.js'
 import type { AtomizerService } from './atomizer.js'
 import type { ScoringService } from './scoring.js'
 import type { RewriterService } from './rewriter.js'
 import type { FaqGeneratorService } from './faq-generator.js'
 import type { TaskService } from './task-service.js'
+import type { EeatService } from './eeat.js'
+import type { CitabilityService } from './citability.js'
 
 export interface OptimizeInput {
   workspaceId: string
@@ -12,6 +14,7 @@ export interface OptimizeInput {
   pageId?: string
   url?: string
   pageType?: string
+  eeatInput?: EeatInput
 }
 
 export interface OrchestratorService {
@@ -24,13 +27,14 @@ export interface OrchestratorDeps {
   rewriter: RewriterService
   faqGenerator: FaqGeneratorService
   taskService: TaskService
+  eeat: EeatService
+  citability: CitabilityService
   prisma: PrismaClient
 }
 
 export function createOrchestrator(deps: OrchestratorDeps): OrchestratorService {
   return {
     async optimize(input) {
-      // 1. 获取内容
       let content = input.content
       let pageId = input.pageId
 
@@ -43,7 +47,6 @@ export function createOrchestrator(deps: OrchestratorDeps): OrchestratorService 
         }
       }
 
-      // 2. 原子化
       const atoms: Atom[] = await deps.atomizer.atomize(content)
       if (atoms.length === 0) {
         return {
@@ -55,22 +58,36 @@ export function createOrchestrator(deps: OrchestratorDeps): OrchestratorService 
         }
       }
 
-      // 3. 评分
       const scoredAtoms: ScoredAtom[] = deps.scoring.scoreAtoms(atoms)
       const beforeScore = deps.scoring.scorePage(scoredAtoms)
       const needsRewrite = scoredAtoms.filter((a) => a.score.total < 70).length
 
-      // 4. 重写不达标的
       const rewrittenAtoms: ScoredAtom[] = await deps.rewriter.rewriteBatch(scoredAtoms)
-      const afterScore = deps.scoring.scorePage(rewrittenAtoms)
+      const afterAtomScore = deps.scoring.scorePage(rewrittenAtoms)
 
-      // 5. 生成 FAQ
+      const citabilityInputs: CitabilityInput[] = rewrittenAtoms.map((atom, i) => ({
+        text: atom.text,
+        positionRatio: rewrittenAtoms.length > 0 ? i / rewrittenAtoms.length : 0,
+        hasAttribution: atom.anchors.length > 0,
+        hasUniqueData: atom.score.hasNumericAnchor,
+      }))
+      const citabilityResult = deps.citability.scorePassages(citabilityInputs)
+
+      const eeatScore = input.eeatInput
+        ? deps.eeat.score(input.eeatInput)
+        : { total: 0, experience: 0, expertise: 0, authoritativeness: 0, trustworthiness: 0, whoHowWhyPassed: false }
+
+      const overallScore = deps.scoring.scorePageComposite(
+        afterAtomScore,
+        citabilityResult.average,
+        eeatScore.total,
+      )
+
       const faqs: FaqPair[] = await deps.faqGenerator.generate({
         atoms: rewrittenAtoms,
         workspaceId: input.workspaceId,
       })
 
-      // 6. 计算报告指标
       const passedAtoms = rewrittenAtoms.filter((a) => a.score.total >= 70).length
       const independentAtoms = rewrittenAtoms.filter((a) => a.score.isSelfContained).length
       const coveredFaqs = faqs.filter((f) => f.matchedQueryId).length
@@ -78,16 +95,17 @@ export function createOrchestrator(deps: OrchestratorDeps): OrchestratorService 
       const result: OptimizationResult = {
         atoms: rewrittenAtoms,
         faqs,
-        overallScore: afterScore,
+        overallScore,
         rewrittenCount: needsRewrite,
         report: {
           atomizationRate: rewrittenAtoms.length > 0 ? passedAtoms / rewrittenAtoms.length : 0,
           independenceRate: rewrittenAtoms.length > 0 ? independentAtoms / rewrittenAtoms.length : 0,
           faqCoverage: faqs.length > 0 ? coveredFaqs / faqs.length : 0,
+          citabilityScore: citabilityResult.average,
+          eeatScore: eeatScore.total,
         },
       }
 
-      // 7. 更新或创建 ContentPage
       if (input.url) {
         const page = await deps.prisma.contentPage.upsert({
           where: { workspaceId_url: { workspaceId: input.workspaceId, url: input.url } },
@@ -97,23 +115,22 @@ export function createOrchestrator(deps: OrchestratorDeps): OrchestratorService 
             pageType: input.pageType || 'landing',
             currentContent: content,
             optimizedContent: JSON.stringify(result),
-            optimizationScore: afterScore,
+            optimizationScore: overallScore,
           },
           update: {
             optimizedContent: JSON.stringify(result),
-            optimizationScore: afterScore,
+            optimizationScore: overallScore,
           },
         })
         pageId = page.id
       }
 
-      // 8. 创建审核任务
       await deps.taskService.create({
         workspaceId: input.workspaceId,
         type: 'REWRITE_CONTENT',
         pageId,
         beforeScore,
-        afterScore,
+        afterScore: overallScore,
         result: {
           overallScore: result.overallScore,
           rewrittenCount: result.rewrittenCount,

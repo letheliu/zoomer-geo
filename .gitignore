@@ -5,3 +5,4 @@ dist/
 pnpm-lock.yaml
 prisma/migrations/dev.db*
 .worktrees/
+.pnpm-store/

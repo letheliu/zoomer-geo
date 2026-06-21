@@ -65,4 +65,36 @@ describe('JsonLdBuilder', () => {
     expect(registry.get('SoftwareApplication')).not.toBeNull()
     expect(registry.get('Unknown')).toBeNull()
   })
+
+  it('build 新增类型 BlogPosting', () => {
+    const doc = builder.build({
+      type: 'BlogPosting',
+      fields: {
+        headline: 'Test Post',
+        author: { '@type': 'Person', name: 'Author' },
+        datePublished: '2026-01-01',
+      },
+    })
+    expect(doc['@type']).toBe('BlogPosting')
+    expect(doc['headline']).toBe('Test Post')
+  })
+
+  it('build 新增类型 Person', () => {
+    const doc = builder.build({
+      type: 'Person',
+      fields: { name: 'John', jobTitle: 'Engineer' },
+    })
+    expect(doc['@type']).toBe('Person')
+    expect(doc['name']).toBe('John')
+    expect(doc['jobTitle']).toBe('Engineer')
+  })
+
+  it('build 新增类型 Event 缺少必填字段抛错', () => {
+    expect(() =>
+      builder.build({
+        type: 'Event',
+        fields: { name: 'Conference' },
+      }),
+    ).toThrow(/startDate/)
+  })
 })

@@ -1,11 +1,31 @@
-/** 白名单类型 */
 export type SupportedSchemaType =
   | 'SoftwareApplication'
+  | 'WebApplication'
   | 'Organization'
+  | 'LocalBusiness'
   | 'Product'
+  | 'ProductGroup'
+  | 'Offer'
+  | 'Service'
   | 'FAQPage'
+  | 'QAPage'
   | 'Article'
+  | 'BlogPosting'
+  | 'NewsArticle'
   | 'BreadcrumbList'
+  | 'WebSite'
+  | 'WebPage'
+  | 'Person'
+  | 'ProfilePage'
+  | 'ContactPage'
+  | 'VideoObject'
+  | 'ImageObject'
+  | 'Event'
+  | 'JobPosting'
+  | 'Course'
+  | 'Review'
+  | 'AggregateRating'
+  | 'DiscussionForumPosting'
 
 /** Schema 类型定义 */
 export interface SchemaTypeDefinition {
@@ -24,13 +44,14 @@ export interface SchemaEntity {
 export interface ValidationError {
   path: string
   message: string
-  code: 'MISSING_REQUIRED' | 'INVALID_TYPE' | 'INVALID_CONTEXT'
+  code: 'MISSING_REQUIRED' | 'INVALID_TYPE' | 'INVALID_CONTEXT' | 'DEPRECATED'
 }
 
 /** Validator 结果 */
 export interface ValidationResult {
   valid: boolean
   errors: ValidationError[]
+  warnings: ValidationError[]
 }
 
 /** JSON-LD 文档 */

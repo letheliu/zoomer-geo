@@ -32,10 +32,13 @@ describe('OpenAiAdapter', () => {
     expect(result.answer).toContain('zoomer AI')
   })
 
-  it('从答案提取 URL 作为 citations', async () => {
+  it('从答案提取 URL 作为 sourceCitations（answer_url 类型）', async () => {
     const adapter = new OpenAiAdapter()
     const result = await adapter.query('AI设计工具', { OPENAI_API_KEY: 'sk-test' })
-    expect(result.citations.length).toBeGreaterThan(0)
-    expect(result.citations[0].url).toBe('https://zoomer.top')
+    expect(result.sourceCitations.length).toBeGreaterThan(0)
+    expect(result.sourceCitations[0]).toMatchObject({
+      url: 'https://zoomer.top',
+      sourceType: 'answer_url',
+    })
   })
 })

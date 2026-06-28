@@ -4,8 +4,27 @@ import { createLlmsTxtBuilder } from './llms-txt-builder.js'
 describe('LlmsTxtBuilder', () => {
   const builder = createLlmsTxtBuilder()
 
-  it('build 输出标准 markdown 格式', () => {
-    const md = builder.build({
+  it('build 返回 content 和 warnings', () => {
+    const result = builder.build({
+      brandName: 'zoomer AI',
+      tagline: 'AI 设计工具',
+      sections: [
+        {
+          title: '核心产品',
+          items: [
+            { label: '白模生图', url: 'https://example.com/feature-1', description: '一键生成白模线稿' },
+          ],
+        },
+      ],
+    })
+
+    expect(result.content).toContain('# zoomer AI')
+    expect(result.warnings).toHaveLength(1)
+    expect(result.warnings[0]).toContain('No major AI search system')
+  })
+
+  it('buildRaw 输出标准 markdown 格式', () => {
+    const md = builder.buildRaw({
       brandName: 'zoomer AI',
       tagline: 'AI 设计工具',
       sections: [
@@ -36,8 +55,8 @@ describe('LlmsTxtBuilder', () => {
     expect(md).toContain('- 博客：每周 2 篇')
   })
 
-  it('build 不传 updateFrequency 时跳过该 section', () => {
-    const md = builder.build({
+  it('buildRaw 不传 updateFrequency 时跳过该 section', () => {
+    const md = builder.buildRaw({
       brandName: 'zoomer AI',
       tagline: 'AI 设计工具',
       sections: [{ title: '核心产品', items: [] }],
@@ -45,8 +64,8 @@ describe('LlmsTxtBuilder', () => {
     expect(md).not.toContain('## 更新频率')
   })
 
-  it('build 空 sections 时仍输出品牌行', () => {
-    const md = builder.build({
+  it('buildRaw 空 sections 时仍输出品牌行', () => {
+    const md = builder.buildRaw({
       brandName: 'zoomer',
       tagline: 't',
       sections: [],
@@ -55,7 +74,7 @@ describe('LlmsTxtBuilder', () => {
     expect(md).toContain('> t')
   })
 
-  it('parseMarkdown 回读 build 结果', () => {
+  it('parseMarkdown 回读 buildRaw 结果', () => {
     const original = {
       brandName: 'zoomer AI',
       tagline: 'AI 设计工具',
@@ -66,7 +85,7 @@ describe('LlmsTxtBuilder', () => {
         },
       ],
     }
-    const md = builder.build(original)
+    const md = builder.buildRaw(original)
     const parsed = builder.parseMarkdown(md)
     expect(parsed).not.toBeNull()
     expect(parsed!.brandName).toBe('zoomer AI')
@@ -77,5 +96,15 @@ describe('LlmsTxtBuilder', () => {
   it('parseMarkdown 对非法输入返回 null', () => {
     expect(builder.parseMarkdown('')).toBeNull()
     expect(builder.parseMarkdown('random text')).toBeNull()
+  })
+
+  it('warning 提到 llms.txt 不被主流AI搜索消费', () => {
+    const result = builder.build({
+      brandName: 'test',
+      tagline: 'test',
+      sections: [],
+    })
+    expect(result.warnings[0]).toContain('llms.txt')
+    expect(result.warnings[0]).toContain('optionality')
   })
 })

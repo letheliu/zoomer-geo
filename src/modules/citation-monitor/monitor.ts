@@ -26,16 +26,18 @@ export function createMonitor(deps: MonitorDeps): Monitor {
   async function processOne(
     query: { id: string; workspaceId: string; queryText: string },
     platform: string,
-    workspace: { defaultBrandName: string; platformConfig: any; competitors?: string[] },
+    workspace: { defaultBrandName: string; domain?: string; platformConfig: any; competitors?: string[] },
   ): Promise<CitationEvent | null> {
     const adapter = deps.registry.get(platform)
     if (!adapter) return null
     const credentials = workspace.platformConfig?.[platform] || {}
     try {
       const platformResult = await adapter.query(query.queryText, credentials)
+      const brandDomains = [workspace.domain].filter(Boolean) as string[]
       const analysis = analyzeCitation({
         platformResult,
         brand: workspace.defaultBrandName,
+        brandDomains,
         competitors: workspace.competitors || deps.competitors,
       })
       return deps.prisma.citationEvent.create({
@@ -44,8 +46,13 @@ export function createMonitor(deps: MonitorDeps): Monitor {
           queryId: query.id,
           platform,
           brandMentioned: analysis.brandMentioned,
+          brandSourceCited: analysis.brandSourceCited,
           rankInAnswer: analysis.rankInAnswer,
-          citedUrls: platformResult.citations as any,
+          sourceRank: analysis.sourceRank,
+          citedUrls: platformResult.sourceCitations as any,
+          sourceCitations: platformResult.sourceCitations as any,
+          groundingSources: platformResult.groundingSources as any,
+          analysis: analysis as any,
           competitors: analysis.competitors as any,
           rawAnswer: platformResult.answer,
           sovScore: analysis.sovScore,

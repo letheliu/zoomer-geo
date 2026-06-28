@@ -14,6 +14,7 @@ function mockPrisma() {
       findUnique: vi.fn().mockResolvedValue({
         id: 'w1',
         defaultBrandName: 'zoomer AI',
+        domain: 'zoomer.top',
         platformConfig: {
           openai: { OPENAI_API_KEY: 'sk-test' },
         },
@@ -52,8 +53,9 @@ describe('monitor', () => {
     ]
     const adapter = mockAdapter({
       answer: '推荐 zoomer AI',
-      citations: [],
-      mentionedBrands: [],
+      sourceCitations: [],
+      groundingSources: [],
+      answerMentions: [],
     })
     const registry = { get: vi.fn().mockReturnValue(adapter), list: vi.fn().mockReturnValue(['openai']) } as any
     const monitor = createMonitor({
@@ -93,5 +95,36 @@ describe('monitor', () => {
     const events = await monitor.runOnce({ workspaceId: 'w1', platforms: ['openai'] })
     expect(events).toHaveLength(0)
     expect(failing.query).toHaveBeenCalledTimes(2)
+  })
+
+  it('写入新增的 source citation 字段', async () => {
+    const queries = [
+      { id: 'q1', workspaceId: 'w1', queryText: 'AI设计工具', status: 'ACTIVE' },
+    ]
+    const adapter = mockAdapter({
+      answer: 'Notion 和 zoomer AI 都可以考虑',
+      sourceCitations: [
+        { url: 'https://notion.so', position: 1, sourceType: 'api_citation' },
+        { url: 'https://zoomer.top/features', position: 2, sourceType: 'api_citation' },
+      ],
+      groundingSources: [],
+      answerMentions: [],
+    })
+    const registry = { get: vi.fn().mockReturnValue(adapter), list: vi.fn().mockReturnValue(['openai']) } as any
+    const monitor = createMonitor({
+      prisma,
+      registry,
+      queryLibrary: mockQueryLibrary(queries),
+      competitors: ['Notion'],
+    })
+
+    await monitor.runOnce({ workspaceId: 'w1', platforms: ['openai'] })
+
+    const data = prisma.citationEvent.create.mock.calls[0][0].data
+    expect(data.brandSourceCited).toBe(true)
+    expect(data.sourceRank).toBe(2)
+    expect(data.sourceCitations).toHaveLength(2)
+    expect(data.groundingSources).toEqual([])
+    expect(data.analysis).toBeDefined()
   })
 })

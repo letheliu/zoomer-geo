@@ -22,9 +22,17 @@ describe('PerplexityAdapter', () => {
     const adapter = new PerplexityAdapter()
     const result = await adapter.query('AI设计工具', { PERPLEXITY_API_KEY: 'pplx-test' })
     expect(result.answer).toContain('zoomer AI')
-    expect(result.citations).toHaveLength(2)
-    expect(result.citations[0]).toEqual({ url: 'https://zoomer.top', position: 1 })
-    expect(result.citations[1]).toEqual({ url: 'https://example.com/blog', position: 2 })
+    expect(result.sourceCitations).toHaveLength(2)
+    expect(result.sourceCitations[0]).toMatchObject({
+      url: 'https://zoomer.top',
+      position: 1,
+      sourceType: 'api_citation',
+    })
+    expect(result.sourceCitations[1]).toMatchObject({
+      url: 'https://example.com/blog',
+      position: 2,
+      sourceType: 'api_citation',
+    })
   })
 
   it('无 citations 字段时返回空数组', async () => {
@@ -39,6 +47,6 @@ describe('PerplexityAdapter', () => {
     )
     const adapter = new PerplexityAdapter()
     const result = await adapter.query('x', { PERPLEXITY_API_KEY: 'pplx-test' })
-    expect(result.citations).toEqual([])
+    expect(result.sourceCitations).toEqual([])
   })
 })

@@ -1,4 +1,4 @@
-import type { PlatformAdapter, PlatformResult, CitationEntry } from './types.js'
+import type { PlatformAdapter, PlatformResult, SourceCitation } from './types.js'
 
 const URL_REGEX = /https?:\/\/[^\s)]+/gi
 
@@ -36,10 +36,17 @@ export class ErnieAdapter implements PlatformAdapter {
     const json = (await res.json()) as { result: string }
     const answer = json.result
     const matches = [...answer.matchAll(URL_REGEX)]
-    const citations: CitationEntry[] = matches.map((m, i) => ({
+    const sourceCitations: SourceCitation[] = matches.map((m, i) => ({
       url: m[0],
       position: i + 1,
+      sourceType: 'answer_url' as const,
     }))
-    return { answer, citations, mentionedBrands: [] }
+    return {
+      answer,
+      sourceCitations,
+      groundingSources: [],
+      answerMentions: [],
+      raw: json,
+    }
   }
 }

@@ -78,4 +78,89 @@ describe('query library service', () => {
     expect(llm.chat).toHaveBeenCalled()
     expect(prisma.citationQuery.create).toHaveBeenCalledTimes(3)
   })
+
+  it('generateQueries 解析结构化 LLM 输出', async () => {
+    const llm = {
+      name: 'test',
+      chat: vi.fn().mockResolvedValue({
+        text: JSON.stringify([
+          {
+            queryText: 'AI 设计工具哪个好',
+            intentType: 'comparison',
+            cluster: 'ai-design-tools',
+            mappedPageUrl: 'https://zoomer.top/features',
+            priority: 1,
+          },
+        ]),
+      }),
+      embed: vi.fn(),
+    }
+    const svc = createQueryLibraryService(prisma, llm as any)
+    const result = await svc.generateQueries({
+      workspaceId: 'w1',
+      topic: 'AI 设计工具',
+      count: 1,
+    })
+
+    expect(result).toHaveLength(1)
+    expect(prisma.citationQuery.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        workspaceId: 'w1',
+        queryText: 'AI 设计工具哪个好',
+        source: 'LLM_GENERATED',
+        status: 'ACTIVE',
+        intentType: 'comparison',
+        cluster: 'ai-design-tools',
+        mappedPageUrl: 'https://zoomer.top/features',
+        priority: 1,
+      }),
+    })
+  })
+
+  it('generateQueries 兼容旧格式字符串数组', async () => {
+    const llm = {
+      name: 'test',
+      chat: vi.fn().mockResolvedValue({
+        text: JSON.stringify(['AI 设计工具推荐']),
+      }),
+      embed: vi.fn(),
+    }
+    const svc = createQueryLibraryService(prisma, llm as any)
+    const result = await svc.generateQueries({
+      workspaceId: 'w1',
+      topic: 'AI 设计工具',
+      count: 1,
+    })
+
+    expect(result).toHaveLength(1)
+    expect(prisma.citationQuery.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        queryText: 'AI 设计工具推荐',
+        intentType: 'other',
+        priority: 3,
+      }),
+    })
+  })
+
+  it('addQuery 支持结构化字段', async () => {
+    const svc = createQueryLibraryService(prisma)
+    await svc.addQuery({
+      workspaceId: 'w1',
+      queryText: 'AI设计工具',
+      source: 'MANUAL',
+      intentType: 'comparison',
+      cluster: 'ai-design',
+      mappedPageUrl: 'https://zoomer.top',
+      priority: 1,
+    })
+
+    expect(prisma.citationQuery.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        intentType: 'comparison',
+        cluster: 'ai-design',
+        mappedPageUrl: 'https://zoomer.top',
+        priority: 1,
+      }),
+    })
+  })
 })

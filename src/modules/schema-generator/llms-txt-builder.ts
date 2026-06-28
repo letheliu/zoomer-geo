@@ -1,13 +1,30 @@
 import type { LlmsTxtInput, LlmsTxtSection } from './types.js'
 
+export interface LlmsTxtBuildResult {
+  content: string
+  warnings: string[]
+}
+
 export interface LlmsTxtBuilderService {
-  build(input: LlmsTxtInput): string
+  build(input: LlmsTxtInput): LlmsTxtBuildResult
+  buildRaw(input: LlmsTxtInput): string
   parseMarkdown(md: string): LlmsTxtInput | null
 }
+
+const LLMS_TXT_WARNING =
+  'No major AI search system (Google AI Overviews, ChatGPT Search, Perplexity) has confirmed consuming /llms.txt as of May 2026. Ship for optionality, not for citation ranking.'
 
 export function createLlmsTxtBuilder(): LlmsTxtBuilderService {
   return {
     build(input) {
+      const raw = this.buildRaw(input)
+      return {
+        content: raw,
+        warnings: [LLMS_TXT_WARNING],
+      }
+    },
+
+    buildRaw(input) {
       const lines: string[] = []
       lines.push(`# ${input.brandName}`)
       lines.push(`> ${input.tagline}`)

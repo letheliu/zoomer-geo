@@ -1,4 +1,4 @@
-import type { PlatformAdapter, PlatformResult, CitationEntry } from './types.js'
+import type { PlatformAdapter, PlatformResult, SourceCitation } from './types.js'
 
 const URL_REGEX = /https?:\/\/[^\s)]+/gi
 
@@ -23,17 +23,37 @@ export class GeminiAdapter implements PlatformAdapter {
       throw new Error(`Gemini adapter failed: ${res.status} ${await res.text()}`)
     }
     const json = (await res.json()) as {
-      candidates?: { content: { parts: { text: string }[] } }[]
+      candidates?: {
+        content: { parts: { text: string }[] }
+        groundingMetadata?: {
+          groundingChunks?: { web: { uri: string; title?: string } }[]
+        }
+      }[]
     }
     const parts = json.candidates?.[0]?.content?.parts || []
     const answer = parts.map((p) => p.text).join('')
 
-    const matches = [...answer.matchAll(URL_REGEX)]
-    const citations: CitationEntry[] = matches.map((m, i) => ({
-      url: m[0],
+    const groundingChunks = json.candidates?.[0]?.groundingMetadata?.groundingChunks || []
+    const groundingSources: SourceCitation[] = groundingChunks.map((chunk, i) => ({
+      url: chunk.web.uri,
+      title: chunk.web.title,
       position: i + 1,
+      sourceType: 'grounding' as const,
     }))
 
-    return { answer, citations, mentionedBrands: [] }
+    const matches = [...answer.matchAll(URL_REGEX)]
+    const sourceCitations: SourceCitation[] = matches.map((m, i) => ({
+      url: m[0],
+      position: i + 1,
+      sourceType: 'answer_url' as const,
+    }))
+
+    return {
+      answer,
+      sourceCitations,
+      groundingSources,
+      answerMentions: [],
+      raw: json,
+    }
   }
 }

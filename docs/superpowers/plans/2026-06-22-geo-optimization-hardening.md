@@ -81,7 +81,7 @@ web/src/views/Settings.vue                  # publicationConfig 基础配置
 **文件：**
 - 修改：`prisma/schema.prisma`
 
-- [ ] **步骤 1：扩展 `CitationEvent`**
+- [x] **步骤 1：扩展 `CitationEvent`**
 
 在 `CitationEvent` 中追加字段：
 
@@ -95,7 +95,7 @@ web/src/views/Settings.vue                  # publicationConfig 基础配置
 
 保留 `citedUrls` 字段，用于兼容旧事件。
 
-- [ ] **步骤 2：扩展 `CitationQuery`**
+- [x] **步骤 2：扩展 `CitationQuery`**
 
 在 `CitationQuery` 中追加字段：
 
@@ -107,7 +107,7 @@ web/src/views/Settings.vue                  # publicationConfig 基础配置
   lastRunAt     DateTime?
 ```
 
-- [ ] **步骤 3：扩展 `ContentPage`**
+- [x] **步骤 3：扩展 `ContentPage`**
 
 在 `ContentPage` 中追加字段：
 
@@ -116,7 +116,7 @@ web/src/views/Settings.vue                  # publicationConfig 基础配置
   lastPublishedAt  DateTime?
 ```
 
-- [ ] **步骤 4：扩展 `Workspace`**
+- [x] **步骤 4：扩展 `Workspace`**
 
 在 `Workspace` 中追加字段：
 
@@ -125,7 +125,7 @@ web/src/views/Settings.vue                  # publicationConfig 基础配置
   publicationRecords PublicationRecord[]
 ```
 
-- [ ] **步骤 5：新增 `PublicationRecord` 和 `PublicationStatus`**
+- [x] **步骤 5：新增 `PublicationRecord` 和 `PublicationStatus`**
 
 在模型区追加：
 
@@ -155,13 +155,13 @@ enum PublicationStatus {
 }
 ```
 
-- [ ] **步骤 6：生成 Prisma Client**
+- [x] **步骤 6：生成 Prisma Client**
 
 运行：`pnpm db:generate`
 
 预期：Prisma Client 生成成功，无 schema 解析错误。
 
-- [ ] **步骤 7：Commit**
+- [x] **步骤 7：Commit**
 
 ```bash
 git add prisma/schema.prisma
@@ -176,7 +176,7 @@ git commit -m "feat(db): add GEO hardening fields and publication records"
 - 修改：`src/modules/citation-monitor/platform-adapters/types.ts`
 - 测试：`src/modules/citation-monitor/platform-adapters/types.test.ts`
 
-- [ ] **步骤 1：编写类型兼容测试**
+- [x] **步骤 1：编写类型兼容测试**
 
 创建测试，验证旧结果可通过 helper 归一化：
 
@@ -200,13 +200,13 @@ describe('normalizePlatformResult', () => {
 })
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：`pnpm exec vitest run src/modules/citation-monitor/platform-adapters/types.test.ts`
 
 预期：FAIL，提示 `normalizePlatformResult` 不存在。
 
-- [ ] **步骤 3：实现类型和归一化 helper**
+- [x] **步骤 3：实现类型和归一化 helper**
 
 在 `types.ts` 中定义：
 
@@ -261,13 +261,13 @@ export function normalizePlatformResult(input: PlatformResult | any): PlatformRe
 }
 ```
 
-- [ ] **步骤 4：运行测试验证通过**
+- [x] **步骤 4：运行测试验证通过**
 
 运行：`pnpm exec vitest run src/modules/citation-monitor/platform-adapters/types.test.ts`
 
 预期：PASS。
 
-- [ ] **步骤 5：Commit**
+- [x] **步骤 5：Commit**
 
 ```bash
 git add src/modules/citation-monitor/platform-adapters/types.ts src/modules/citation-monitor/platform-adapters/types.test.ts
@@ -282,7 +282,7 @@ git commit -m "feat(citation): add normalized source citation result types"
 - 修改：`src/modules/citation-monitor/analyzer.ts`
 - 测试：`src/modules/citation-monitor/analyzer.test.ts`
 
-- [ ] **步骤 1：新增 analyzer 测试**
+- [x] **步骤 1：新增 analyzer 测试**
 
 在现有测试中补充：
 
@@ -310,13 +310,13 @@ it('识别品牌来源引用并计算 sourceRank', () => {
 })
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：`pnpm exec vitest run src/modules/citation-monitor/analyzer.test.ts`
 
 预期：FAIL，提示新字段或 `brandDomains` 不存在。
 
-- [ ] **步骤 3：实现分析逻辑**
+- [x] **步骤 3：实现分析逻辑**
 
 更新 `AnalyzeInput`：
 
@@ -356,13 +356,13 @@ return {
 }
 ```
 
-- [ ] **步骤 4：运行测试验证通过**
+- [x] **步骤 4：运行测试验证通过**
 
 运行：`pnpm exec vitest run src/modules/citation-monitor/analyzer.test.ts`
 
 预期：PASS。
 
-- [ ] **步骤 5：Commit**
+- [x] **步骤 5：Commit**
 
 ```bash
 git add src/modules/citation-monitor/analyzer.ts src/modules/citation-monitor/analyzer.test.ts
@@ -380,7 +380,7 @@ git commit -m "feat(citation): analyze source citations and domain matches"
 - 修改：`src/modules/citation-monitor/platform-adapters/anthropic.ts`
 - 测试：对应 `*.test.ts`
 
-- [ ] **步骤 1：补充 Perplexity 测试**
+- [x] **步骤 1：补充 Perplexity 测试**
 
 验证 `json.citations` 输出为 `sourceType: 'api_citation'`：
 
@@ -392,7 +392,7 @@ expect(result.sourceCitations[0]).toMatchObject({
 })
 ```
 
-- [ ] **步骤 2：补充 Gemini grounding 测试**
+- [x] **步骤 2：补充 Gemini grounding 测试**
 
 mock 返回：
 
@@ -411,11 +411,11 @@ mock 返回：
 
 断言 `groundingSources[0].sourceType === 'grounding'`。
 
-- [ ] **步骤 3：补充 OpenAI / Anthropic fallback 测试**
+- [x] **步骤 3：补充 OpenAI / Anthropic fallback 测试**
 
 当响应没有结构化 citation 字段但答案中含 URL 时，断言输出 `sourceType: 'answer_url'`。
 
-- [ ] **步骤 4：运行测试验证失败**
+- [x] **步骤 4：运行测试验证失败**
 
 运行：
 
@@ -429,7 +429,7 @@ pnpm exec vitest run \
 
 预期：FAIL，旧字段断言或新字段缺失。
 
-- [ ] **步骤 5：实现适配器输出**
+- [x] **步骤 5：实现适配器输出**
 
 每个 adapter 返回：
 
@@ -455,13 +455,13 @@ function extractAnswerUrlCitations(answer: string): SourceCitation[] {
 }
 ```
 
-- [ ] **步骤 6：运行测试验证通过**
+- [x] **步骤 6：运行测试验证通过**
 
 运行同步骤 4 命令。
 
 预期：PASS。
 
-- [ ] **步骤 7：Commit**
+- [x] **步骤 7：Commit**
 
 ```bash
 git add src/modules/citation-monitor/platform-adapters
@@ -477,7 +477,7 @@ git commit -m "feat(citation): emit structured source citations from adapters"
 - 测试：`src/modules/citation-monitor/monitor.test.ts`
 - 测试：`tests/e2e-citation-flow.test.ts`
 
-- [ ] **步骤 1：新增 monitor 测试断言**
+- [x] **步骤 1：新增 monitor 测试断言**
 
 在 mock adapter 返回 source citation 后，断言 Prisma create data 包含：
 
@@ -493,13 +493,13 @@ expect(prisma.citationEvent.create).toHaveBeenCalledWith({
 })
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：`pnpm exec vitest run src/modules/citation-monitor/monitor.test.ts tests/e2e-citation-flow.test.ts`
 
 预期：FAIL，create data 缺少新增字段。
 
-- [ ] **步骤 3：更新 monitor**
+- [x] **步骤 3：更新 monitor**
 
 调用 analyzer 时传入 workspace domain：
 
@@ -523,13 +523,13 @@ analysis: analysis as any,
 citedUrls: platformResult.sourceCitations as any,
 ```
 
-- [ ] **步骤 4：运行测试验证通过**
+- [x] **步骤 4：运行测试验证通过**
 
 运行同步骤 2 命令。
 
 预期：PASS。
 
-- [ ] **步骤 5：Commit**
+- [x] **步骤 5：Commit**
 
 ```bash
 git add src/modules/citation-monitor/monitor.ts src/modules/citation-monitor/monitor.test.ts tests/e2e-citation-flow.test.ts
@@ -546,7 +546,7 @@ git commit -m "feat(citation): persist source citation analysis"
 - 测试：`src/modules/citation-monitor/query-library.test.ts`
 - 测试：`src/modules/citation-monitor/router.test.ts`
 
-- [ ] **步骤 1：新增 query-library 测试**
+- [x] **步骤 1：新增 query-library 测试**
 
 覆盖结构化 LLM 输出：
 
@@ -573,17 +573,17 @@ expect(prisma.citationQuery.create).toHaveBeenCalledWith({
 })
 ```
 
-- [ ] **步骤 2：新增字符串数组兼容测试**
+- [x] **步骤 2：新增字符串数组兼容测试**
 
 LLM 返回 `["AI 设计工具推荐"]` 时，断言 `intentType: 'other'`、`priority: 3`。
 
-- [ ] **步骤 3：运行测试验证失败**
+- [x] **步骤 3：运行测试验证失败**
 
 运行：`pnpm exec vitest run src/modules/citation-monitor/query-library.test.ts src/modules/citation-monitor/router.test.ts`
 
 预期：FAIL，新字段未写入。
 
-- [ ] **步骤 4：实现结构化 query parser**
+- [x] **步骤 4：实现结构化 query parser**
 
 新增：
 
@@ -607,7 +607,7 @@ interface GeneratedQueryDraft {
 }
 ```
 
-- [ ] **步骤 5：更新 router input**
+- [x] **步骤 5：更新 router input**
 
 `queries.add` 支持：
 
@@ -618,13 +618,13 @@ mappedPageUrl: z.string().url().optional(),
 priority: z.number().int().min(1).max(5).optional(),
 ```
 
-- [ ] **步骤 6：运行测试验证通过**
+- [x] **步骤 6：运行测试验证通过**
 
 运行同步骤 3 命令。
 
 预期：PASS。
 
-- [ ] **步骤 7：Commit**
+- [x] **步骤 7：Commit**
 
 ```bash
 git add src/modules/citation-monitor/query-library.ts src/modules/citation-monitor/router.ts src/modules/citation-monitor/query-library.test.ts src/modules/citation-monitor/router.test.ts
@@ -641,7 +641,7 @@ git commit -m "feat(citation): add structured query metadata"
 - 修改：`src/modules/citation-monitor/router.ts`
 - 测试：`src/modules/citation-monitor/router.test.ts`
 
-- [ ] **步骤 1：编写 metrics 测试**
+- [x] **步骤 1：编写 metrics 测试**
 
 ```typescript
 import { compareGeoMetrics } from './metrics.js'
@@ -663,13 +663,13 @@ it('计算 before/after 的 source citation delta', () => {
 })
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：`pnpm exec vitest run src/modules/citation-monitor/metrics.test.ts`
 
 预期：FAIL，文件不存在。
 
-- [ ] **步骤 3：实现 metrics**
+- [x] **步骤 3：实现 metrics**
 
 实现：
 
@@ -680,7 +680,7 @@ export function compareGeoMetrics(before: CitationMetricEvent[], after: Citation
 
 平均 rank 只统计非 null 值；空样本返回 `0` 或 `null`。
 
-- [ ] **步骤 4：更新 router**
+- [x] **步骤 4：更新 router**
 
 `getSovScore` 和 `getEffectComparison` 调用 metrics helper，返回：
 
@@ -698,7 +698,7 @@ export function compareGeoMetrics(before: CitationMetricEvent[], after: Citation
 legacy: { totalEvents, mentionedCount, sovScore }
 ```
 
-- [ ] **步骤 5：运行测试验证通过**
+- [x] **步骤 5：运行测试验证通过**
 
 运行：
 
@@ -708,7 +708,7 @@ pnpm exec vitest run src/modules/citation-monitor/metrics.test.ts src/modules/ci
 
 预期：PASS。
 
-- [ ] **步骤 6：Commit**
+- [x] **步骤 6：Commit**
 
 ```bash
 git add src/modules/citation-monitor/metrics.ts src/modules/citation-monitor/metrics.test.ts src/modules/citation-monitor/router.ts src/modules/citation-monitor/router.test.ts

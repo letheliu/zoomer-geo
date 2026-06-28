@@ -1,5 +1,5 @@
 import type { Atom, ScoredAtom, AtomScore } from './types.js'
-import type { CitabilityService, CitabilityInput } from './citability.js'
+import type { CitabilityService } from './citability.js'
 import { createCitabilityEngine } from './citability.js'
 
 const WEIGHTS = {

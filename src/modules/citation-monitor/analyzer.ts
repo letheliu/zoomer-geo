@@ -8,14 +8,18 @@ export interface CompetitorMention {
 
 export interface CitationAnalysis {
   brandMentioned: boolean
+  brandSourceCited: boolean
   rankInAnswer: number | null
+  sourceRank: number | null
   sovScore: number
+  sourceCitationRate: number
   competitors: CompetitorMention[]
 }
 
 export interface AnalyzeInput {
   platformResult: PlatformResult
   brand: string
+  brandDomains?: string[]
   competitors: string[]
 }
 
@@ -32,8 +36,17 @@ function firstIndex(text: string, term: string): number {
   return text.toLowerCase().indexOf(term.toLowerCase())
 }
 
+function urlMatchesDomains(url: string, domains: string[]): boolean {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '')
+    return domains.some((d) => host === d || host.endsWith(`.${d}`))
+  } catch {
+    return false
+  }
+}
+
 export function analyzeCitation(input: AnalyzeInput): CitationAnalysis {
-  const { platformResult, brand, competitors } = input
+  const { platformResult, brand, brandDomains = [], competitors } = input
   const answer = platformResult.answer
 
   // 收集所有品牌（主品牌 + 竞品）的出现信息
@@ -67,5 +80,29 @@ export function analyzeCitation(input: AnalyzeInput): CitationAnalysis {
     return { brand: name, mentioned: true, rank }
   })
 
-  return { brandMentioned, rankInAnswer, sovScore, competitors: competitorResult }
+  // Source citation 分析
+  const allSources = [
+    ...platformResult.sourceCitations,
+    ...platformResult.groundingSources,
+  ]
+
+  const brandSourceCited = allSources.some((s) => urlMatchesDomains(s.url, brandDomains))
+
+  const sourceRank = brandSourceCited
+    ? allSources.find((s) => urlMatchesDomains(s.url, brandDomains))?.position ?? null
+    : null
+
+  const sourceCitationRate = allSources.length > 0
+    ? allSources.filter((s) => urlMatchesDomains(s.url, brandDomains)).length / allSources.length
+    : 0
+
+  return {
+    brandMentioned,
+    brandSourceCited,
+    rankInAnswer,
+    sourceRank,
+    sovScore,
+    sourceCitationRate,
+    competitors: competitorResult,
+  }
 }

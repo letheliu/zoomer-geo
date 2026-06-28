@@ -1,4 +1,4 @@
-import type { PlatformAdapter, PlatformResult, CitationEntry } from './types.js'
+import type { PlatformAdapter, PlatformResult, SourceCitation } from './types.js'
 
 export class PerplexityAdapter implements PlatformAdapter {
   name = 'perplexity'
@@ -27,11 +27,18 @@ export class PerplexityAdapter implements PlatformAdapter {
       citations?: string[]
     }
     const answer = json.choices[0].message.content
-    const citations: CitationEntry[] = (json.citations || []).map((url, i) => ({
+    const sourceCitations: SourceCitation[] = (json.citations || []).map((url, i) => ({
       url,
       position: i + 1,
+      sourceType: 'api_citation' as const,
     }))
 
-    return { answer, citations, mentionedBrands: [] }
+    return {
+      answer,
+      sourceCitations,
+      groundingSources: [],
+      answerMentions: [],
+      raw: json,
+    }
   }
 }

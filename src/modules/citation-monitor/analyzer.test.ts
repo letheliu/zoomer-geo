@@ -3,7 +3,7 @@ import { analyzeCitation } from './analyzer.js'
 import type { PlatformResult } from './platform-adapters/types.js'
 
 function makeResult(answer: string): PlatformResult {
-  return { answer, citations: [], mentionedBrands: [] }
+  return { answer, sourceCitations: [], groundingSources: [], answerMentions: [] }
 }
 
 describe('CitationAnalyzer', () => {
@@ -55,5 +55,67 @@ describe('CitationAnalyzer', () => {
     expect(figma?.rank).toBe(2)
     expect(sketch?.mentioned).toBe(false)
     expect(sketch?.rank).toBeNull()
+  })
+
+  it('识别品牌来源引用并计算 sourceRank', () => {
+    const result = analyzeCitation({
+      platformResult: {
+        answer: 'Notion 和 zoomer AI 都可以考虑',
+        sourceCitations: [
+          { url: 'https://notion.so', position: 1, sourceType: 'api_citation' },
+          { url: 'https://zoomer.top/features', position: 2, sourceType: 'api_citation' },
+        ],
+        groundingSources: [],
+        answerMentions: [],
+      },
+      brand: 'zoomer AI',
+      brandDomains: ['zoomer.top'],
+      competitors: ['Notion'],
+    })
+
+    expect(result.brandMentioned).toBe(true)
+    expect(result.brandSourceCited).toBe(true)
+    expect(result.sourceRank).toBe(2)
+    expect(result.sourceCitationRate).toBe(0.5)
+  })
+
+  it('品牌来源未被引用时 brandSourceCited=false', () => {
+    const result = analyzeCitation({
+      platformResult: {
+        answer: 'zoomer AI 是一个工具',
+        sourceCitations: [
+          { url: 'https://notion.so', position: 1, sourceType: 'api_citation' },
+        ],
+        groundingSources: [],
+        answerMentions: [],
+      },
+      brand: 'zoomer AI',
+      brandDomains: ['zoomer.top'],
+      competitors: ['Notion'],
+    })
+
+    expect(result.brandMentioned).toBe(true)
+    expect(result.brandSourceCited).toBe(false)
+    expect(result.sourceRank).toBeNull()
+    expect(result.sourceCitationRate).toBe(0)
+  })
+
+  it('grounding sources 也参与 sourceRank 计算', () => {
+    const result = analyzeCitation({
+      platformResult: {
+        answer: '推荐 zoomer AI',
+        sourceCitations: [],
+        groundingSources: [
+          { url: 'https://zoomer.top', position: 1, sourceType: 'grounding' },
+        ],
+        answerMentions: [],
+      },
+      brand: 'zoomer AI',
+      brandDomains: ['zoomer.top'],
+      competitors: [],
+    })
+
+    expect(result.brandSourceCited).toBe(true)
+    expect(result.sourceRank).toBe(1)
   })
 })

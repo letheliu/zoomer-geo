@@ -56,11 +56,12 @@ function mockDeps(prisma = mockPrisma()) {
     }),
   }
   const llmsTxtBuilder: LlmsTxtBuilderService = {
-    build: vi.fn().mockReturnValue('# zoomer AI\n> tagline\n'),
+    build: vi.fn().mockReturnValue({ content: '# zoomer AI\n> tagline\n', warnings: ['No major AI search system'] }),
+    buildRaw: vi.fn().mockReturnValue('# zoomer AI\n> tagline\n'),
     parseMarkdown: vi.fn(),
   }
   const validator: SchemaValidatorService = {
-    validate: vi.fn().mockReturnValue({ valid: true, errors: [] }),
+    validate: vi.fn().mockReturnValue({ valid: true, errors: [], warnings: [] }),
   }
   const autoSections: AutoSectionsService = {
     buildSections: vi.fn().mockResolvedValue({ sections: [], warnings: [] }),
@@ -117,6 +118,8 @@ describe('SchemaService', () => {
     })
     expect(result.markdown).toContain('# zoomer')
     expect(result.record.schemaType).toBe('LlmsTxt')
+    expect(result.warnings).toHaveLength(1)
+    expect(result.warnings[0]).toContain('No major AI search system')
   })
 
   it('regenerateForPage 调用 extractor → adapter → builder → 写入多条记录', async () => {

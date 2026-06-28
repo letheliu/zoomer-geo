@@ -25,7 +25,7 @@ export interface SchemaService {
     tagline: string
     sections: LlmsTxtInput['sections']
     updateFrequency?: LlmsTxtInput['updateFrequency']
-  }): Promise<{ markdown: string; record: SchemaRecord }>
+  }): Promise<{ markdown: string; record: SchemaRecord; warnings: string[] }>
 
   regenerateForPage(pageId: string): Promise<SchemaRecord[]>
 
@@ -75,12 +75,13 @@ export function createSchemaService(deps: {
     },
 
     async generateLlmsTxt(input) {
-      const markdown = deps.llmsTxtBuilder.build({
+      const buildResult = deps.llmsTxtBuilder.build({
         brandName: input.brandName,
         tagline: input.tagline,
         sections: input.sections,
         updateFrequency: input.updateFrequency,
       })
+      const markdown = buildResult.content
       const pageUrl = input.pageUrl ?? '/llms.txt'
       const version = await getNextVersion(input.workspaceId, pageUrl)
       const record = await deps.prisma.schemaRecord.create({
@@ -88,12 +89,12 @@ export function createSchemaService(deps: {
           workspaceId: input.workspaceId,
           pageUrl,
           schemaType: 'LlmsTxt',
-          content: { markdown } as any,
+          content: { markdown, warnings: buildResult.warnings } as any,
           llmsTxtSection: 'all',
           version,
         },
       })
-      return { markdown, record }
+      return { markdown, record, warnings: buildResult.warnings }
     },
 
     async regenerateForPage(pageId) {

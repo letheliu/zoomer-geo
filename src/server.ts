@@ -17,6 +17,8 @@ import { startCitationScheduler } from './workers/citation-scheduler.js'
 import { getLlmProvider } from './core/llm/index.js'
 import { createAtomizer } from './modules/content-optimizer/atomizer.js'
 import { createScoringEngine } from './modules/content-optimizer/scoring.js'
+import { createCitabilityEngine } from './modules/content-optimizer/citability.js'
+import { createEeatEngine } from './modules/content-optimizer/eeat.js'
 import { createRewriter } from './modules/content-optimizer/rewriter.js'
 import { createFaqGenerator } from './modules/content-optimizer/faq-generator.js'
 import { createTaskService } from './modules/content-optimizer/task-service.js'
@@ -28,6 +30,7 @@ import { createSchemaRegistry } from './modules/schema-generator/schema-registry
 import { createJsonLdBuilder } from './modules/schema-generator/jsonld-builder.js'
 import { createLlmsTxtBuilder } from './modules/schema-generator/llms-txt-builder.js'
 import { createSchemaValidator } from './modules/schema-generator/validator.js'
+import { createDeprecationService } from './modules/schema-generator/deprecated-types.js'
 import { createAutoSections } from './modules/schema-generator/auto-sections.js'
 import { createSchemaService } from './modules/schema-generator/service.js'
 import { createKgRepository } from './modules/knowledge-graph/repository.js'
@@ -56,9 +59,11 @@ async function main() {
 
   // 组装 content-optimizer 组件
   const atomizer = createAtomizer(getLlmProvider())
-  const scoring = createScoringEngine()
+  const citability = createCitabilityEngine()
+  const scoring = createScoringEngine(citability)
   const rewriter = createRewriter(getLlmProvider())
   const faqGenerator = createFaqGenerator(getLlmProvider(), prisma)
+  const eeat = createEeatEngine()
 
   // 共享层
   const entityExtractor = createEntityExtractor(getLlmProvider())
@@ -69,7 +74,7 @@ async function main() {
   // Schema Generator
   const jsonLdBuilder = createJsonLdBuilder()
   const llmsTxtBuilder = createLlmsTxtBuilder()
-  const validator = createSchemaValidator(schemaRegistry)
+  const validator = createSchemaValidator(schemaRegistry, createDeprecationService())
   const autoSections = createAutoSections({ prisma })
   const schemaService = createSchemaService({
     prisma, extractor: entityExtractor, schemaAdapter,
@@ -109,7 +114,7 @@ async function main() {
   })
 
   const orchestrator = createOrchestrator({
-    atomizer, scoring, rewriter, faqGenerator, taskService, prisma,
+    atomizer, scoring, rewriter, faqGenerator, taskService, eeat, citability, prisma,
   })
 
   // 注入到 tRPC context 的 services

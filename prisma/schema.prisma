@@ -8,58 +8,70 @@ datasource db {
 }
 
 model Workspace {
-  id               String             @id @default(cuid())
-  name             String
-  domain           String?
-  llmsTxtUrl       String?
-  defaultBrandName String
-  apiKeyHash       String
-  platformConfig   Json               @default("{}")
-  status           WorkspaceStatus    @default(ACTIVE)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  events           CitationEvent[]
-  queries          CitationQuery[]
-  pages            ContentPage[]
-  entities         KgEntity[]
-  tasks            OptimizationTask[]
-  schemas          SchemaRecord[]
+  id                 String             @id @default(cuid())
+  name               String
+  domain             String?
+  llmsTxtUrl         String?
+  defaultBrandName   String
+  apiKeyHash         String
+  platformConfig     Json               @default("{}")
+  publicationConfig  Json               @default("{}")
+  status             WorkspaceStatus    @default(ACTIVE)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  events             CitationEvent[]
+  queries            CitationQuery[]
+  pages              ContentPage[]
+  entities           KgEntity[]
+  tasks              OptimizationTask[]
+  schemas            SchemaRecord[]
+  publicationRecords PublicationRecord[]
 
   @@index([status])
 }
 
 model CitationQuery {
-  id          String             @id @default(cuid())
-  workspaceId String
-  queryText   String
-  intent      Json               @default("{}")
-  source      QuerySource
-  status      QueryStatus        @default(ACTIVE)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  embedding   Json?
-  events      CitationEvent[]
-  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  tasks       OptimizationTask[]
+  id             String             @id @default(cuid())
+  workspaceId    String
+  queryText      String
+  intent         Json               @default("{}")
+  intentType     String?
+  cluster        String?
+  mappedPageUrl  String?
+  priority       Int                @default(3)
+  lastRunAt      DateTime?
+  source         QuerySource
+  status         QueryStatus        @default(ACTIVE)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  embedding      Json?
+  events         CitationEvent[]
+  workspace      Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks          OptimizationTask[]
 
   @@index([workspaceId, status])
 }
 
 model CitationEvent {
-  id             String        @id @default(cuid())
-  workspaceId    String
-  queryId        String
-  platform       String
-  brandMentioned Boolean
-  rankInAnswer   Int?
-  citedUrls      Json          @default("[]")
-  competitors    Json          @default("[]")
-  rawAnswer      String
-  sovScore       Float?
-  capturedAt     DateTime      @default(now())
-  embedding      Json?
-  query          CitationQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
-  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id               String        @id @default(cuid())
+  workspaceId      String
+  queryId          String
+  platform         String
+  brandMentioned   Boolean
+  brandSourceCited Boolean      @default(false)
+  rankInAnswer     Int?
+  sourceRank       Int?
+  citedUrls        Json          @default("[]")
+  sourceCitations  Json          @default("[]")
+  groundingSources Json          @default("[]")
+  analysis         Json          @default("{}")
+  competitors      Json          @default("[]")
+  rawAnswer        String
+  sovScore         Float?
+  capturedAt       DateTime      @default(now())
+  embedding        Json?
+  query            CitationQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  workspace        Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, platform, capturedAt])
   @@index([queryId, capturedAt])
@@ -72,7 +84,11 @@ model ContentPage {
   pageType          String
   currentContent    String
   optimizedContent  String?
+  publishedContent  String?
+  lastPublishedAt   DateTime?
   optimizationScore Float?
+  eeatScore         Float?
+  citabilityScore   Float?
   status            ContentStatus      @default(DRAFT)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -105,18 +121,20 @@ model OptimizationTask {
 }
 
 model SchemaRecord {
-  id             String    @id @default(cuid())
+  id             String       @id @default(cuid())
   workspaceId    String
   pageUrl        String
   schemaType     String
   content        Json
   llmsTxtSection String?
-  version        Int       @default(1)
-  createdAt      DateTime  @default(now())
-  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  status         SchemaStatus @default(ACTIVE)
+  version        Int          @default(1)
+  createdAt      DateTime     @default(now())
+  workspace      Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, pageUrl])
   @@index([workspaceId, schemaType])
+  @@index([workspaceId, status])
 }
 
 model KgEntity {
@@ -185,5 +203,35 @@ enum TaskStatus {
   IN_PROGRESS
   REVIEWED
   PUBLISHED
+  FAILED
+}
+
+enum SchemaStatus {
+  ACTIVE
+  DEPRECATED
+  NO_RICH_RESULTS
+}
+
+model PublicationRecord {
+  id          String            @id @default(cuid())
+  workspaceId String
+  taskId      String?
+  pageUrl     String
+  targetType  String
+  status      PublicationStatus @default(PENDING)
+  payload     Json
+  response    Json?
+  error       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, pageUrl])
+}
+
+enum PublicationStatus {
+  PENDING
+  SUCCEEDED
   FAILED
 }
